@@ -1,0 +1,1048 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import Icon from '@/components/ui/AppIcon';
+import { useAppStore, User, Team } from '@/lib/store';
+import { Company } from '@/lib/mock-data';
+import { UserRole } from '@/lib/auth-context';
+
+export default function AdminDashboardPage() {
+    const { orders, updateOrderStatus, companies, addCompany, updateCompany, removeCompany, users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote } = useAppStore();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'settings'>('overview');
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'settings') {
+            setActiveTab(tab as any);
+        }
+    }, [searchParams]);
+
+    const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+    const [isAddMode, setIsAddMode] = useState(false);
+
+    const [formValues, setFormValues] = useState<Partial<Company>>({});
+
+    // Delivery confirmation state for admin overrides
+    const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
+    const [deliveryDetails, setDeliveryDetails] = useState({
+        isin: '',
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+        declared: false
+    });
+
+    // User creation state
+    const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+    const [userFormValues, setUserFormValues] = useState<Partial<User>>({
+        role: 'rm'
+    });
+
+    // Team creation state
+    const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
+    const [teamFormValues, setTeamFormValues] = useState<Partial<Team>>({
+        rmIds: []
+    });
+    // Team detail state
+    const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+
+    // User directory search & filter state
+    const [userSearchQuery, setUserSearchQuery] = useState('');
+    const [userRoleFilter, setUserRoleFilter] = useState<'all' | UserRole>('all');
+
+    const settledVal = orders.filter(o => o.status === 'in_holding').reduce((sum, o) => sum + o.totalAmount, 0);
+
+    const openEdit = (comp: Company) => {
+        setIsAddMode(false);
+        setEditingCompany(comp);
+        setFormValues({ ...comp });
+    };
+
+    const openAdd = () => {
+        setIsAddMode(true);
+        setEditingCompany({ id: `comp_${Date.now()}` } as Company);
+        setFormValues({
+            name: '',
+            sector: '',
+            valuation: 0,
+            status: 'series_a',
+            currentAskPrice: 0,
+            description: '',
+            aiContext: ''
+        });
+    };
+
+    const handleSave = () => {
+        if (!editingCompany) return;
+
+        if (isAddMode) {
+            const newCompany: Company = {
+                id: editingCompany.id,
+                name: formValues.name || 'New Company',
+                sector: formValues.sector || 'Various',
+                valuation: formValues.valuation || 0,
+                status: formValues.status || 'series_a',
+                currentAskPrice: formValues.currentAskPrice || 0,
+                currentBidPrice: (formValues.currentAskPrice || 0) * 0.95,
+                description: formValues.description || '',
+                aiContext: formValues.aiContext || ''
+            };
+            addCompany(newCompany);
+        } else {
+            updateCompany({ ...editingCompany, ...formValues } as Company);
+        }
+        setEditingCompany(null);
+    };
+
+    const handleDelete = (id: string) => {
+        if (confirm("Are you sure you want to remove this listing?")) {
+            removeCompany(id);
+        }
+    };
+
+    const handleCreateUser = () => {
+        if (!userFormValues.name || !userFormValues.email) {
+            alert("Name and Email are required.");
+            return;
+        }
+        const newUser: User = {
+            id: `usr_${Date.now()}`,
+            name: userFormValues.name,
+            email: userFormValues.email,
+            role: userFormValues.role as UserRole
+        };
+        addUser(newUser);
+        setIsCreateUserModalOpen(false);
+        setUserFormValues({ role: 'rm' });
+    };
+
+    const handleCreateTeam = () => {
+        if (!teamFormValues.name) {
+            alert("Team Name is required.");
+            return;
+        }
+        const newTeam: Team = {
+            id: `team_${Date.now()}`,
+            name: teamFormValues.name,
+            description: teamFormValues.description || '',
+            rmIds: teamFormValues.rmIds || [],
+            managerId: teamFormValues.managerId,
+            notes: []
+        };
+        addTeam(newTeam);
+        setIsCreateTeamModalOpen(false);
+        setTeamFormValues({ rmIds: [] });
+    };
+
+    const handlePromoteToMailSent = () => {
+        if (!deliveryOrderId) return;
+        if (!deliveryDetails.declared) {
+            alert('You must declare that the shares have been transferred.');
+            return;
+        }
+        updateOrderStatus(deliveryOrderId, 'mail_sent', deliveryDetails);
+        setDeliveryOrderId(null);
+        setDeliveryDetails({
+            isin: '',
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+            declared: false
+        });
+    };
+
+    return (
+        <div className="container mx-auto px-4 md:px-8 py-8 relative">
+            <div className="flex justify-between items-center mb-10">
+                <div>
+                    <h1 className="text-3xl font-display font-light tracking-tight text-foreground">
+                        {activeTab === 'overview' ? 'Platform Overview' :
+                            activeTab === 'companies' ? 'Company Listings' :
+                                activeTab === 'users' ? 'User Directory' :
+                                    activeTab === 'teams' ? 'Team Management' : 'Portal Settings'}
+                    </h1>
+                    <p className="text-muted mt-1">
+                        {activeTab === 'overview' ? 'Manage platform metrics and global orders.' :
+                            activeTab === 'companies' ? 'Add, edit or remove companies from the marketplace.' :
+                                activeTab === 'users' ? 'Manage platform access and user roles.' :
+                                    activeTab === 'teams' ? 'Create teams and assign Relationship Managers.' : 'Configure global platform parameters.'}
+                    </p>
+                </div>
+                {(activeTab === 'overview' || activeTab === 'companies') && (
+                    <Button onClick={openAdd} className="bg-primary hover:bg-primary/90 text-white rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-md shadow-primary/20">
+                        <Icon name="PlusIcon" size={16} className="mr-2" />
+                        Add Company
+                    </Button>
+                )}
+                {activeTab === 'users' && (
+                    <Button onClick={() => setIsCreateUserModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-md shadow-primary/20">
+                        <Icon name="UserPlusIcon" size={16} className="mr-2" />
+                        Create Account
+                    </Button>
+                )}
+                {activeTab === 'teams' && (
+                    <Button onClick={() => setIsCreateTeamModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-md shadow-primary/20">
+                        <Icon name="PlusIcon" size={16} className="mr-2" />
+                        Create Team
+                    </Button>
+                )}
+            </div>
+
+            {activeTab === 'overview' && (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-10">
+                        <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=users')}>
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 bg-surface text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <Icon name="UsersIcon" size={20} />
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-muted mb-1">Total Platform Users</div>
+                                <div className="text-2xl font-bold text-foreground">{users.length}</div>
+                                <p className="text-xs text-green-600 mt-2 flex items-center font-medium">
+                                    <Icon name="ArrowTrendingUpIcon" size={12} className="mr-1" />
+                                    Live Data
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=teams')}>
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 bg-surface text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <Icon name="UserGroupIcon" size={20} />
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-muted mb-1">Active Teams</div>
+                                <div className="text-2xl font-bold text-foreground">{teams.length}</div>
+                                <p className="text-xs text-muted mt-2">RM Squads</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border shadow-sm group">
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 bg-surface text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <Icon name="BanknotesIcon" size={20} />
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-muted mb-1">Total AUM Settled</div>
+                                <div className="text-2xl font-bold text-foreground">₹{(settledVal + 15000000).toLocaleString()}</div>
+                                <p className="text-xs text-green-600 mt-2 flex items-center font-medium">
+                                    <Icon name="ArrowTrendingUpIcon" size={12} className="mr-1" />
+                                    +5% this week
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border shadow-sm group">
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-100 transition-colors">
+                                        <Icon name="IdentificationIcon" size={20} />
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-muted mb-1">Platform Activity</div>
+                                <div className="text-2xl font-bold text-amber-600">{orders.length}</div>
+                                <p className="text-xs text-muted mt-2">Active tracked orders</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=companies')}>
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 bg-surface text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <Icon name="BuildingOfficeIcon" size={20} />
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-muted mb-1">Active Listings</div>
+                                <div className="text-2xl font-bold text-foreground">{companies.length}</div>
+                                <p className="text-xs text-muted mt-2">Companies available</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <Card className="border-border shadow-sm mb-10">
+                        <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
+                            <div>
+                                <CardTitle className="font-display font-medium text-lg">Global Transactions</CardTitle>
+                                <CardDescription className="text-muted">Monitor all platform deal flow across all Relationship Managers.</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0 bg-white">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                            <TableHead className="text-muted font-semibold pl-6">Company</TableHead>
+                                            <TableHead className="text-muted font-semibold">User ID</TableHead>
+                                            <TableHead className="text-muted font-semibold">Qty</TableHead>
+                                            <TableHead className="text-muted font-semibold">Amount</TableHead>
+                                            <TableHead className="text-muted font-semibold">Status</TableHead>
+                                            <TableHead className="text-right text-muted font-semibold pr-6">Override</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {orders.map(order => (
+                                            <TableRow key={order.id} className="border-border hover:bg-surface/30">
+                                                <TableCell className="font-medium text-foreground pl-6">{order.companyName}</TableCell>
+                                                <TableCell className="text-muted whitespace-nowrap">{order.userId}</TableCell>
+                                                <TableCell className="font-medium whitespace-nowrap">{order.quantity} Shares</TableCell>
+                                                <TableCell className="font-semibold whitespace-nowrap">₹{order.totalAmount.toLocaleString()}</TableCell>
+                                                <TableCell>
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${order.status === 'requested' ? 'bg-amber-50 text-amber-600' :
+                                                        order.status === 'under_process' || order.status === 'mail_sent' ? 'bg-blue-50 text-blue-600' :
+                                                            'bg-green-50 text-green-600'}`}>
+                                                        {order.status.replace('_', ' ')}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-6">
+                                                    {order.status === 'under_process' && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="text-xs font-bold uppercase tracking-widest bg-primary hover:bg-primary/90 text-white whitespace-nowrap"
+                                                            onClick={() => setDeliveryOrderId(order.id)}
+                                                        >
+                                                            Fulfill Delivery
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </>
+            )}
+
+            {activeTab === 'companies' && (
+                <Card className="border-border shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
+                        <div>
+                            <CardTitle className="font-display font-medium text-lg">Company Management</CardTitle>
+                            <CardDescription className="text-muted">Manage active listings, current prices, and funding updates.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                        <TableHead className="text-muted font-semibold pl-6">Company</TableHead>
+                                        <TableHead className="text-muted font-semibold">Sector</TableHead>
+                                        <TableHead className="text-muted font-semibold">Status</TableHead>
+                                        <TableHead className="text-muted font-semibold">Ask Price</TableHead>
+                                        <TableHead className="text-right text-muted font-semibold pr-6">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {companies.map(company => (
+                                        <TableRow key={company.id} className="border-border hover:bg-surface/30">
+                                            <TableCell className="font-medium text-foreground pl-6">{company.name}</TableCell>
+                                            <TableCell className="text-muted">{company.sector}</TableCell>
+                                            <TableCell>
+                                                <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold bg-primary/5 text-primary border border-primary/10 tracking-wide uppercase">
+                                                    {company.status.replace('_', ' ')}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="font-semibold">₹{company.currentAskPrice.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right pr-6 whitespace-nowrap">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-accent hover:text-accent hover:bg-accent/10 transition-colors uppercase tracking-widest text-[10px] font-bold mr-1"
+                                                    onClick={() => openEdit(company)}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors uppercase tracking-widest text-[10px] font-bold"
+                                                    onClick={() => handleDelete(company.id)}
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {activeTab === 'users' && (
+                <Card className="border-border shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
+                        <div>
+                            <CardTitle className="font-display font-medium text-lg">Global User Directory</CardTitle>
+                            <CardDescription className="text-muted">Manage all platform users, their roles, and system access.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <div className="p-4 border-b border-border bg-surface/20 flex flex-col md:flex-row gap-4 items-center">
+                        <div className="relative flex-1">
+                            <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                            <Input
+                                placeholder="Search by name or email..."
+                                className="pl-10 h-10 border-border bg-white"
+                                value={userSearchQuery}
+                                onChange={(e) => setUserSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-muted uppercase tracking-widest whitespace-nowrap">Filter Role:</span>
+                            <select
+                                className="h-10 px-3 bg-white border border-border rounded-lg text-xs font-semibold focus:ring-1 focus:ring-primary outline-none"
+                                value={userRoleFilter}
+                                onChange={(e) => setUserRoleFilter(e.target.value as any)}
+                            >
+                                <option value="all">ALL ROLES</option>
+                                <option value="admin">ADMIN</option>
+                                <option value="staffmanager">STAFF MANAGER</option>
+                                <option value="rm">RELATIONSHIP MANAGER</option>
+                                <option value="customer">CUSTOMER</option>
+                            </select>
+                        </div>
+                    </div>
+                    <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                        <TableHead className="text-muted font-semibold pl-6">Name</TableHead>
+                                        <TableHead className="text-muted font-semibold">Email</TableHead>
+                                        <TableHead className="text-muted font-semibold">System Role</TableHead>
+                                        <TableHead className="text-right text-muted font-semibold pr-6">Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {users.filter(user => {
+                                        const matchesSearch = user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                                            user.email.toLowerCase().includes(userSearchQuery.toLowerCase());
+                                        const matchesRole = userRoleFilter === 'all' || user.role === userRoleFilter;
+                                        return matchesSearch && matchesRole;
+                                    }).map(user => (
+                                        <TableRow key={user.id} className="border-border hover:bg-surface/30">
+                                            <TableCell className="font-medium text-foreground pl-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold font-display border border-primary/20">
+                                                        {user.name.charAt(0)}
+                                                    </div>
+                                                    {user.name}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-muted">{user.email}</TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${user.role === 'admin' ? 'bg-red-50 text-red-600 border-red-200' :
+                                                    user.role === 'staffmanager' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                        user.role === 'rm' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                            'bg-slate-50 text-slate-600 border-slate-200'
+                                                    }`}>
+                                                    {user.role}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">
+                                                    Active
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+            {activeTab === 'teams' && (
+                <Card className="border-border shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
+                        <div>
+                            <CardTitle className="font-display font-medium text-lg">Platform Teams</CardTitle>
+                            <CardDescription className="text-muted">Manage teams of Relationship Managers and assign them to Staff Managers.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                        <TableHead className="text-muted font-semibold pl-6">Team Name</TableHead>
+                                        <TableHead className="text-muted font-semibold">Staff Manager</TableHead>
+                                        <TableHead className="text-muted font-semibold">RM Count</TableHead>
+                                        <TableHead className="text-right text-muted font-semibold pr-6">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {teams.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center p-8 text-muted italic">No teams created yet.</TableCell>
+                                        </TableRow>
+                                    ) : teams.map(team => (
+                                        <TableRow key={team.id} className="border-border hover:bg-surface/30">
+                                            <TableCell className="font-medium text-foreground pl-6 cursor-pointer hover:text-primary transition-colors" onClick={() => setSelectedTeamId(team.id)}>
+                                                {team.name}
+                                            </TableCell>
+                                            <TableCell className="text-muted">
+                                                {users.find(u => u.id === team.managerId)?.name || 'Unassigned'}
+                                            </TableCell>
+                                            <TableCell>{team.rmIds.length} RMs</TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="sm" className="text-primary text-[10px] uppercase font-bold tracking-widest" onClick={() => setSelectedTeamId(team.id)}>View Details</Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-500 hover:text-red-600 hover:bg-red-50 text-[10px] uppercase font-bold tracking-widest"
+                                                        onClick={() => removeTeam(team.id)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {activeTab === 'settings' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="border-b border-border/50 bg-white">
+                            <CardTitle className="font-display font-medium text-lg">Platform Parameters</CardTitle>
+                            <CardDescription>Configure global transaction limits and fees.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Global Buy Fee (%)</label>
+                                <Input defaultValue="1.5" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Minimum Transaction (INR)</label>
+                                <Input defaultValue="100,000" />
+                            </div>
+                            <Button className="w-full bg-primary text-white mt-4">Save Platform Settings</Button>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="border-b border-border/50 bg-white">
+                            <CardTitle className="font-display font-medium text-lg">System Health</CardTitle>
+                            <CardDescription>Monitor platform performance and uptime.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            <div className="flex justify-between items-center py-2 border-b border-border/30">
+                                <span className="text-sm">API Connectivity</span>
+                                <span className="text-xs font-bold text-green-600">Stable</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-border/30">
+                                <span className="text-sm">Database Load</span>
+                                <span className="text-xs font-bold text-primary">12% Normal</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                                <span className="text-sm">Last Backup</span>
+                                <span className="text-xs text-muted">2 hours ago</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Delivery Details Modal */}
+            {deliveryOrderId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface/30">
+                            <h3 className="font-display text-xl font-medium text-foreground">
+                                Transfer Shares Confirmation
+                            </h3>
+                            <button onClick={() => setDeliveryOrderId(null)} className="text-muted hover:text-foreground hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                <Icon name="XMarkIcon" size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-muted mb-4 block">Please ensure you have sent the necessary mails to finalize the transfer. Details logged here mark the transaction as 'mail_sent', transitioning to 'in_holding' automatically after 5 minutes.</p>
+
+                            <div className="grid gap-4">
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Asset ISIN Code</label>
+                                    <Input
+                                        type="text"
+                                        placeholder="e.g. INE01O101011"
+                                        value={deliveryDetails.isin}
+                                        onChange={(e) => setDeliveryDetails({ ...deliveryDetails, isin: e.target.value })}
+                                        className="h-10 border-border"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-semibold text-foreground mb-1 block">Transfer Date</label>
+                                        <Input
+                                            type="date"
+                                            value={deliveryDetails.date}
+                                            onChange={(e) => setDeliveryDetails({ ...deliveryDetails, date: e.target.value })}
+                                            className="h-10 border-border text-muted"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-semibold text-foreground mb-1 block">Transfer Time</label>
+                                        <Input
+                                            type="time"
+                                            value={deliveryDetails.time}
+                                            onChange={(e) => setDeliveryDetails({ ...deliveryDetails, time: e.target.value })}
+                                            className="h-10 border-border text-muted"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 mt-4 bg-blue-50/50 border border-blue-100 p-4 rounded-lg">
+                                    <input
+                                        type="checkbox"
+                                        id="declare-transfer"
+                                        className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                        checked={deliveryDetails.declared}
+                                        onChange={(e) => setDeliveryDetails({ ...deliveryDetails, declared: e.target.checked })}
+                                    />
+                                    <label htmlFor="declare-transfer" className="text-sm text-foreground">
+                                        I formally declare that I have executed the necessary email communications and external transfers to assign these shares definitively to the client's DEMAT. This action is verifiable.
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-border bg-surface/50 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setDeliveryOrderId(null)}>Cancel</Button>
+                            <Button variant="default" className="bg-primary hover:bg-primary/90 text-white" onClick={handlePromoteToMailSent}>
+                                Confirm Delivery Transfer
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit / Add Modal */}
+            {editingCompany && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface/30">
+                            <h3 className="font-display text-xl font-medium text-foreground">
+                                {isAddMode ? 'Add New Listing' : `Edit ${editingCompany.name}`}
+                            </h3>
+                            <button onClick={() => setEditingCompany(null)} className="text-muted hover:text-foreground hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                <Icon name="XMarkIcon" size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Company Name</label>
+                                    <input
+                                        type="text"
+                                        value={formValues.name || ''}
+                                        onChange={e => setFormValues({ ...formValues, name: e.target.value })}
+                                        className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none"
+                                        placeholder="e.g. Acme Corp"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Sector</label>
+                                    <input
+                                        type="text"
+                                        value={formValues.sector || ''}
+                                        onChange={e => setFormValues({ ...formValues, sector: e.target.value })}
+                                        className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none"
+                                        placeholder="e.g. FinTech"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Ask Price (INR)</label>
+                                    <input
+                                        type="number"
+                                        value={formValues.currentAskPrice || 0}
+                                        onChange={e => setFormValues({ ...formValues, currentAskPrice: Number(e.target.value) })}
+                                        className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none font-semibold"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Status</label>
+                                    <div className="space-y-2">
+                                        <select
+                                            value={['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'pre_ipo'].includes(formValues.status || '') ? formValues.status : 'custom'}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setFormValues({ ...formValues, status: val === 'custom' ? '' : val as any });
+                                            }}
+                                            className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none uppercase font-semibold text-xs tracking-wider"
+                                        >
+                                            <option value="pre_seed">Pre Seed</option>
+                                            <option value="seed">Seed</option>
+                                            <option value="series_a">Series A</option>
+                                            <option value="series_b">Series B</option>
+                                            <option value="series_c">Series C</option>
+                                            <option value="pre_ipo">Pre IPO</option>
+                                            <option value="custom">Other / Custom</option>
+                                        </select>
+
+                                        {(!['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'pre_ipo'].includes(formValues.status || '') || formValues.status === '') && (
+                                            <input
+                                                type="text"
+                                                value={formValues.status || ''}
+                                                onChange={e => setFormValues({ ...formValues, status: e.target.value })}
+                                                placeholder="Enter custom status (e.g. Series D+)"
+                                                className="w-full p-2.5 text-xs border border-primary/30 rounded-lg bg-white focus-visible:ring-1 focus-visible:ring-primary outline-none font-medium animate-in slide-in-from-top-2 duration-200"
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Valuation (Cr INR)</label>
+                                <input
+                                    type="number"
+                                    value={formValues.valuation || 0}
+                                    onChange={e => setFormValues({ ...formValues, valuation: Number(e.target.value) })}
+                                    className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none font-semibold"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Description</label>
+                                <textarea
+                                    value={formValues.description || ''}
+                                    onChange={e => setFormValues({ ...formValues, description: e.target.value })}
+                                    className="w-full h-24 p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-semibold text-amber-600 mb-1 flex items-center gap-2">
+                                    <Icon name="CpuChipIcon" size={16} variant="solid" /> ShareX AI Context
+                                </label>
+                                <textarea
+                                    value={formValues.aiContext || ''}
+                                    placeholder="Add intelligence context for ShareX AI... e.g., upcoming product launches, secret valuation metrics, recent funding rounds."
+                                    onChange={e => setFormValues({ ...formValues, aiContext: e.target.value })}
+                                    className="w-full h-24 p-2.5 text-sm border border-amber-200 rounded-lg bg-amber-50/30 focus-visible:ring-1 focus-visible:ring-amber-400 outline-none resize-none placeholder:text-amber-600/50"
+                                />
+                                <p className="text-[10px] text-muted mt-1">This information is provided to the AI to answer user queries about this company.</p>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-border bg-surface/50 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setEditingCompany(null)}>Cancel</Button>
+                            <Button variant="default" className="bg-primary hover:bg-primary/90 text-white" onClick={handleSave}>
+                                {isAddMode ? 'Confirm Listing' : 'Save Changes'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Create User Modal */}
+            {isCreateUserModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface/30">
+                            <h3 className="font-display text-xl font-medium text-foreground">Create New Internal Account</h3>
+                            <button onClick={() => setIsCreateUserModalOpen(false)} className="text-muted hover:text-foreground hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                <Icon name="XMarkIcon" size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Full Name</label>
+                                <Input
+                                    placeholder="John Doe"
+                                    value={userFormValues.name || ''}
+                                    onChange={e => setUserFormValues({ ...userFormValues, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Email Address</label>
+                                <Input
+                                    type="email"
+                                    placeholder="john@preipo.com"
+                                    value={userFormValues.email || ''}
+                                    onChange={e => setUserFormValues({ ...userFormValues, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">System Role</label>
+                                <select
+                                    className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none"
+                                    value={userFormValues.role}
+                                    onChange={e => setUserFormValues({ ...userFormValues, role: e.target.value as UserRole })}
+                                >
+                                    <option value="staffmanager">Staff Manager</option>
+                                    <option value="rm">Relationship Manager</option>
+                                    <option value="admin">System Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-border bg-surface/50 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsCreateUserModalOpen(false)}>Cancel</Button>
+                            <Button className="bg-primary text-white" onClick={handleCreateUser}>Create Account</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Team Modal */}
+            {isCreateTeamModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface/30">
+                            <h3 className="font-display text-xl font-medium text-foreground">Build New Team</h3>
+                            <button onClick={() => setIsCreateTeamModalOpen(false)} className="text-muted hover:text-foreground hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                <Icon name="XMarkIcon" size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Team Name</label>
+                                <Input
+                                    placeholder="Diamond Squad"
+                                    value={teamFormValues.name || ''}
+                                    onChange={e => setTeamFormValues({ ...teamFormValues, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Staff Manager Assignment</label>
+                                <select
+                                    className="w-full p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none"
+                                    value={teamFormValues.managerId || ''}
+                                    onChange={e => setTeamFormValues({ ...teamFormValues, managerId: e.target.value })}
+                                >
+                                    <option value="">Select a Manager</option>
+                                    {users.filter(u => u.role === 'staffmanager').map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Relationship Managers</label>
+                                <p className="text-[10px] text-muted mb-2 uppercase tracking-widest">Select members for this team</p>
+                                <div className="space-y-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg bg-surface/10">
+                                    {users.filter(u => u.role === 'rm').map(rm => (
+                                        <div key={rm.id} className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`rm-${rm.id}`}
+                                                checked={teamFormValues.rmIds?.includes(rm.id)}
+                                                onChange={e => {
+                                                    const current = teamFormValues.rmIds || [];
+                                                    if (e.target.checked) {
+                                                        setTeamFormValues({ ...teamFormValues, rmIds: [...current, rm.id] });
+                                                    } else {
+                                                        setTeamFormValues({ ...teamFormValues, rmIds: current.filter(id => id !== rm.id) });
+                                                    }
+                                                }}
+                                            />
+                                            <label htmlFor={`rm-${rm.id}`} className="text-sm">{rm.name}</label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-border bg-surface/50 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsCreateTeamModalOpen(false)}>Cancel</Button>
+                            <Button className="bg-primary text-white" onClick={handleCreateTeam}>Confirm Team Structure</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Team Detail Modal */}
+            {selectedTeamId && (
+                (() => {
+                    const team = teams.find(t => t.id === selectedTeamId);
+                    if (!team) return null;
+                    const manager = users.find(u => u.id === team.managerId);
+                    const teamRms = users.filter(u => team.rmIds.includes(u.id));
+
+                    // Aggregate Performance
+                    const teamOrders = orders.filter(order => {
+                        const customer = users.find(u => u.id === order.userId);
+                        return customer && team.rmIds.includes(customer.assignedRmId || '');
+                    });
+
+                    const totalVolume = teamOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+                    const settledVolume = teamOrders.filter(o => o.status === 'in_holding').reduce((sum, o) => sum + o.totalAmount, 0);
+                    const activeDeals = teamOrders.filter(o => o.status !== 'in_holding').length;
+
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                                <div className="flex items-center justify-between p-6 border-b border-border bg-surface/30">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-inner">
+                                            <Icon name="UserGroupIcon" size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-display text-2xl font-medium text-foreground leading-tight">{team.name}</h3>
+                                            <p className="text-xs text-muted font-medium uppercase tracking-widest mt-0.5">Performance Analysis & Team Roster</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setSelectedTeamId(null)} className="text-muted hover:text-foreground hover:bg-surface p-2 rounded-full transition-colors">
+                                        <Icon name="XMarkIcon" size={24} />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                                    {/* Scorecards */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <Card className="bg-primary/5 border-primary/10 p-5 shadow-none">
+                                            <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest mb-1">Total Sales Volume</p>
+                                            <p className="text-xl font-bold text-primary">₹{(totalVolume / 100000).toFixed(1)}L</p>
+                                        </Card>
+                                        <Card className="bg-green-50 border-green-100 p-5 shadow-none">
+                                            <p className="text-[10px] font-bold text-green-600/70 uppercase tracking-widest mb-1">Settled AUM</p>
+                                            <p className="text-xl font-bold text-green-700">₹{(settledVolume / 100000).toFixed(1)}L</p>
+                                        </Card>
+                                        <Card className="bg-amber-50 border-amber-100 p-5 shadow-none">
+                                            <p className="text-[10px] font-bold text-amber-600/70 uppercase tracking-widest mb-1">Active Pipeline</p>
+                                            <p className="text-xl font-bold text-amber-700">{activeDeals} Deals</p>
+                                        </Card>
+                                        <Card className="bg-slate-50 border-slate-200 p-5 shadow-none">
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Team Size</p>
+                                            <p className="text-xl font-bold text-slate-700">{team.rmIds.length} RMs</p>
+                                        </Card>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        {/* Left Side: Manager & RMs */}
+                                        <div className="lg:col-span-2 space-y-6">
+                                            <div>
+                                                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 border-l-2 border-primary pl-3">Team Structure</h4>
+                                                <div className="space-y-4">
+                                                    <div className="p-4 rounded-xl border border-border bg-white shadow-sm flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm border border-amber-200">SM</div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-foreground">{manager?.name || 'No Manager Assigned'}</p>
+                                                                <p className="text-[10px] text-muted uppercase font-semibold">Staff Manager</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-muted">{manager?.email}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-3 pl-1">Relationship Managers</p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            {teamRms.map(rm => {
+                                                                const rmVolume = orders.filter(o => {
+                                                                    const customer = users.find(u => u.id === o.userId);
+                                                                    return customer?.assignedRmId === rm.id;
+                                                                }).reduce((sum, o) => sum + o.totalAmount, 0);
+
+                                                                return (
+                                                                    <div key={rm.id} className="p-3.5 rounded-xl border border-border/60 bg-surface/20 flex items-center justify-between hover:bg-surface/50 transition-colors">
+                                                                        <div className="flex items-center gap-2.5">
+                                                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[10px]">RM</div>
+                                                                            <div>
+                                                                                <p className="text-xs font-bold text-foreground">{rm.name}</p>
+                                                                                <p className="text-[9px] text-muted">{rm.email}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-[10px] font-bold text-primary">₹{(rmVolume / 100000).toFixed(1)}L</p>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right Side: Quick Stats/Description */}
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 border-l-2 border-primary pl-3">About Team</h4>
+                                                <div className="p-5 rounded-xl border border-border bg-slate-50/50 text-sm text-muted leading-relaxed">
+                                                    {team.description || "This team is responsible for managing strategic relationship and platform deal flow. No additional description provided."}
+                                                </div>
+                                            </div>
+
+                                            <div className="p-5 rounded-xl bg-primary/5 border border-primary/10">
+                                                <h5 className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3">Goal Progress</h5>
+                                                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden mb-2">
+                                                    <div className="h-full bg-primary" style={{ width: '65%' }}></div>
+                                                </div>
+                                                <p className="text-[10px] text-muted text-right font-medium">65% of monthly target met</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Internal Notes Section */}
+                                    <div className="pt-8 border-t border-border">
+                                        <h4 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 border-l-2 border-primary pl-3">Personal Reference Notes</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="space-y-3 max-h-[180px] overflow-y-auto pr-2">
+                                                {team.notes && team.notes.length > 0 ? (
+                                                    team.notes.map((note, idx) => (
+                                                        <div key={idx} className="p-3 bg-slate-50 border border-border rounded-lg shadow-sm">
+                                                            <p className="text-xs text-foreground leading-relaxed">{note}</p>
+                                                            <div className="text-[9px] text-muted mt-1 uppercase font-semibold">Admin Record • Platform Insight</div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="h-full flex items-center justify-center p-8 bg-surface/30 rounded-xl border border-dashed border-border">
+                                                        <p className="text-xs text-muted italic">No private notes for this team yet.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="bg-white p-4 rounded-xl border border-border shadow-sm">
+                                                <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Add New Insight</p>
+                                                <textarea
+                                                    className="w-full h-24 p-3 bg-surface/30 border border-border rounded-lg text-xs focus:ring-1 focus:ring-primary outline-none resize-none mb-3"
+                                                    placeholder="Type personal reference note here..."
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            const val = e.currentTarget.value.trim();
+                                                            if (val) {
+                                                                addTeamNote(team.id, val);
+                                                                e.currentTarget.value = '';
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <p className="text-[9px] text-muted italic leading-tight">These notes are only visible to platform administrators and are not shared with the staff managers or RMs. Press Enter to save.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="px-8 py-5 border-t border-border bg-surface/50 flex justify-end gap-3">
+                                    <Button variant="outline" className="h-10 text-xs font-bold uppercase tracking-widest px-6" onClick={() => setSelectedTeamId(null)}>Close View</Button>
+                                    <Button variant="default" className="bg-primary text-white h-10 text-xs font-bold uppercase tracking-widest px-6" onClick={() => {
+                                        setTeamFormValues({ ...team });
+                                        setIsCreateTeamModalOpen(true);
+                                        setSelectedTeamId(null);
+                                    }}>Edit Structure</Button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()
+            )}
+        </div>
+    );
+}
