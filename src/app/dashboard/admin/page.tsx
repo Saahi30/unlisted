@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,18 @@ import { Company } from '@/lib/mock-data';
 import { UserRole } from '@/lib/auth-context';
 
 export default function AdminDashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-surface flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+        }>
+            <AdminDashboardContent />
+        </Suspense>
+    );
+}
+
+function AdminDashboardContent() {
     const { orders, updateOrderStatus, companies, addCompany, updateCompany, removeCompany, users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote, blogs, addBlog, updateBlog, removeBlog } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();

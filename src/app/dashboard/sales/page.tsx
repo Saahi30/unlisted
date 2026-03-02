@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,18 @@ import Icon from '@/components/ui/AppIcon';
 import { useAppStore, OrderStatus, User } from '@/lib/store';
 
 export default function SalesDashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-surface flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+        }>
+            <SalesDashboardContent />
+        </Suspense>
+    );
+}
+
+function SalesDashboardContent() {
     const { orders, leads, updateOrderStatus, addOrderNote, addLeadNote, updateLead, users } = useAppStore();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'orders' | 'leads' | 'clients'>('leads');

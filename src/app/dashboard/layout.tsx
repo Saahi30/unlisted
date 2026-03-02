@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
@@ -9,6 +9,18 @@ import { useAppStore } from '@/lib/store';
 import ShareSaathiChat from '@/components/chat/ShareSaathiChat';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-surface flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+        }>
+            <DashboardContent children={children} />
+        </Suspense>
+    );
+}
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const router = useRouter();

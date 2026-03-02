@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,18 @@ interface RMPerformance {
 }
 
 export default function ManagerDashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-surface flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+        }>
+            <ManagerDashboardContent />
+        </Suspense>
+    );
+}
+
+function ManagerDashboardContent() {
     const { orders, leads, updateOrderStatus, dematRequests, updateDematStatus, rmTargets, updateRmTarget } = useAppStore();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'transactions' | 'demat'>('overview');
