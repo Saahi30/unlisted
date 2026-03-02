@@ -72,6 +72,8 @@ function AdminDashboardContent() {
     const [editingBlog, setEditingBlog] = useState<any | null>(null);
     const [isBlogAddMode, setIsBlogAddMode] = useState(false);
     const [blogFormValues, setBlogFormValues] = useState<any>({});
+    const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
+    const [aiBlogPrompt, setAiBlogPrompt] = useState({ topic: '', keywords: '' });
 
     const settledVal = orders.filter(o => o.status === 'in_holding').reduce((sum, o) => sum + o.totalAmount, 0);
 
@@ -190,6 +192,33 @@ function AdminDashboardContent() {
             status: 'draft',
             views: 0
         });
+        setAiBlogPrompt({ topic: '', keywords: '' });
+    };
+
+    const handleAiGenerateBlog = async () => {
+        if (!aiBlogPrompt.topic) return;
+        setIsGeneratingBlog(true);
+        try {
+            const res = await fetch('/api/admin/generate-blog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(aiBlogPrompt)
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            setBlogFormValues({
+                ...blogFormValues,
+                title: data.title,
+                slug: data.slug,
+                excerpt: data.excerpt,
+                content: data.content
+            });
+        } catch (err: any) {
+            alert("Generation failed: " + err.message);
+        } finally {
+            setIsGeneratingBlog(false);
+        }
     };
 
     const handleBlogSave = () => {
@@ -1198,7 +1227,46 @@ function AdminDashboardContent() {
                         </div>
 
                         <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-                            <div>
+                            {/* AI Generation Section */}
+                            <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl animate-in slide-in-from-top-4 duration-500">
+                                <label className="text-xs font-bold text-primary mb-3 flex items-center gap-2 uppercase tracking-widest">
+                                    <Icon name="CpuChipIcon" size={16} variant="solid" /> Generate with ShareX AI Intel
+                                </label>
+                                <div className="space-y-3">
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Topic: e.g. Swiggy Pre-IPO Secondary Analysis"
+                                            value={aiBlogPrompt.topic}
+                                            onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, topic: e.target.value })}
+                                            className="bg-white border-primary/20 pr-32 h-10"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            className="absolute right-1 top-1 h-8 bg-primary text-white hover:bg-primary/90 min-w-[100px]"
+                                            onClick={handleAiGenerateBlog}
+                                            disabled={isGeneratingBlog || !aiBlogPrompt.topic}
+                                        >
+                                            {isGeneratingBlog ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                    Thinking
+                                                </div>
+                                            ) : 'Generate Blog'}
+                                        </Button>
+                                    </div>
+                                    <Input
+                                        placeholder="Specific Keywords: e.g. EBITDA multiples, DRHP, anchor investors"
+                                        value={aiBlogPrompt.keywords}
+                                        onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, keywords: e.target.value })}
+                                        className="bg-white border-primary/10 text-xs h-8"
+                                    />
+                                    <p className="text-[10px] text-muted leading-relaxed">
+                                        Our AI adopts a senior financial research persona. It will generate a title, slug, summary, and deep-dive technical content.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-border/50">
                                 <label className="text-sm font-semibold text-foreground mb-1 block">Title</label>
                                 <Input
                                     value={blogFormValues.title || ''}

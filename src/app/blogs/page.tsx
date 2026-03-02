@@ -9,7 +9,9 @@ import Icon from '@/components/ui/AppIcon';
 
 export default function BlogsPage() {
     const { blogs } = useAppStore();
-    const publishedBlogs = blogs.filter(b => b.status === 'published');
+    const publishedBlogs = blogs
+        .filter(b => b.status === 'published')
+        .sort((a, b) => new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime());
 
     return (
         <>

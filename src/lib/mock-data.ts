@@ -161,3 +161,42 @@ export const MOCK_USERS = [
     { id: 'sls_1', name: 'Priya Patel', email: 'agent@sharesaathi.com', role: 'rm' },
     { id: 'sls_2', name: 'Amit Kumar', email: 'amit@sharesaathi.com', role: 'rm' }
 ];
+
+export const MOCK_BLOGS = [
+    {
+        id: "blog_1",
+        title: "NSE Pre-IPO Analysis: The Crown Jewel of Indian Exchanges",
+        slug: "nse-pre-ipo-analysis",
+        excerpt: "As the National Stock Exchange (NSE) gears up for its much-awaited IPO, we analyze the current secondary market premiums.",
+        content: `The National Stock Exchange of India (NSE) remains the most sought-after asset in the Indian unlisted space. With a near-total dominance in the derivatives segment...
+
+### The Thesis: A Monopolistic Moat
+NSE’s competitive advantage isn't just technology; it’s liquidity. In the exchange business, liquidity begets liquidity.
+
+### Valuation Mechanics
+In the secondary market, NSE shares have consistently traded at a premium. Currently, the valuation multiples are being reassessed against global peers...`,
+        status: "published" as const,
+        views: 1240,
+        authorId: "adm_1",
+        createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+        publishedAt: new Date(Date.now() - 25 * 86400000).toISOString()
+    },
+    {
+        id: "blog_2",
+        title: "Zepto's Path to Profitability in Quick Commerce",
+        slug: "zepto-quick-commerce-analysis",
+        excerpt: "Zepto has defied the skeptics by demonstrating a path to EBITDA positivity. We deep-dive into its dark store network.",
+        content: `Zepto’s rise in the Indian Quick Commerce (QC) space has been nothing short of meteoric. While initial skepticism focused on the high cost of 10-minute delivery...
+
+### The Thesis: Dark Store Throughput
+The secret to Zepto’s success lies in the throughput of its dark stores. Unlike traditional retail, these micro-hubs operate 24/7.
+
+### Risk Assessment: Burn and Churn
+High cash burn remains the elephant in the room. While certain clusters are profitable, the overall enterprise still requires capital.`,
+        status: "published" as const,
+        views: 875,
+        authorId: "adm_1",
+        createdAt: new Date(Date.now() - 15 * 86400000).toISOString(),
+        publishedAt: new Date(Date.now() - 10 * 86400000).toISOString()
+    }
+];

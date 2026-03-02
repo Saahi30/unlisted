@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, MOCK_USERS } from './mock-data';
+import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, MOCK_USERS, MOCK_BLOGS } from './mock-data';
 import { UserRole } from './auth-context';
 import { supabase } from './supabase';
 
@@ -397,7 +397,10 @@ export const useAppStore = create<AppState>()(
                             createdAt: b.created_at,
                             publishedAt: b.published_at
                         }));
-                        set({ blogs: parsedBlogs as Blog[] });
+                        set({ blogs: parsedBlogs as any[] });
+                    } else {
+                        // Fallback to MOCK_BLOGS if DB is empty
+                        set({ blogs: MOCK_BLOGS as any[] });
                     }
                 } catch (error) {
                     console.error('Error fetching initial data from Supabase:', error);
