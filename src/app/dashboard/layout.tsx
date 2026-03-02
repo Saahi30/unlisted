@@ -60,6 +60,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Companies', href: '/dashboard/admin?tab=companies', icon: 'BuildingOfficeIcon' },
             { label: 'Users', href: '/dashboard/admin?tab=users', icon: 'UsersIcon' },
             { label: 'Teams', href: '/dashboard/admin?tab=teams', icon: 'UserGroupIcon' },
+            { label: 'Blogs', href: '/dashboard/admin?tab=blogs', icon: 'NewspaperIcon' },
             { label: 'Settings', href: '/dashboard/admin?tab=settings', icon: 'Cog6ToothIcon' },
         ];
     } else if (pathname.includes('/manager')) {
