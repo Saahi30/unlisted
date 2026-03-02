@@ -12,14 +12,14 @@ import { Company } from '@/lib/mock-data';
 import { UserRole } from '@/lib/auth-context';
 
 export default function AdminDashboardPage() {
-    const { orders, updateOrderStatus, companies, addCompany, updateCompany, removeCompany, users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote } = useAppStore();
+    const { orders, updateOrderStatus, companies, addCompany, updateCompany, removeCompany, users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote, blogs, addBlog, updateBlog, removeBlog } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'settings') {
+        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'blogs' || tab === 'settings') {
             setActiveTab(tab as any);
         }
     }, [searchParams]);
@@ -55,6 +55,11 @@ export default function AdminDashboardPage() {
     // User directory search & filter state
     const [userSearchQuery, setUserSearchQuery] = useState('');
     const [userRoleFilter, setUserRoleFilter] = useState<'all' | UserRole>('all');
+
+    // Blog management state
+    const [editingBlog, setEditingBlog] = useState<any | null>(null);
+    const [isBlogAddMode, setIsBlogAddMode] = useState(false);
+    const [blogFormValues, setBlogFormValues] = useState<any>({});
 
     const settledVal = orders.filter(o => o.status === 'in_holding').reduce((sum, o) => sum + o.totalAmount, 0);
 
@@ -156,6 +161,51 @@ export default function AdminDashboardPage() {
         });
     };
 
+    const openBlogEdit = (blog: any) => {
+        setIsBlogAddMode(false);
+        setEditingBlog(blog);
+        setBlogFormValues({ ...blog });
+    };
+
+    const openBlogAdd = () => {
+        setIsBlogAddMode(true);
+        setEditingBlog({ id: `blog_${Date.now()}` });
+        setBlogFormValues({
+            title: '',
+            slug: '',
+            content: '',
+            excerpt: '',
+            status: 'draft',
+            views: 0
+        });
+    };
+
+    const handleBlogSave = () => {
+        if (!editingBlog) return;
+
+        const blogData = {
+            ...editingBlog,
+            ...blogFormValues,
+            slug: blogFormValues.slug || blogFormValues.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
+            authorId: users.find(u => u.role === 'admin')?.id || 'admin-id', // Fallback
+            createdAt: editingBlog.createdAt || new Date().toISOString(),
+            publishedAt: blogFormValues.status === 'published' ? (editingBlog.publishedAt || new Date().toISOString()) : null
+        };
+
+        if (isBlogAddMode) {
+            addBlog(blogData);
+        } else {
+            updateBlog(blogData);
+        }
+        setEditingBlog(null);
+    };
+
+    const handleBlogDelete = (id: string) => {
+        if (confirm("Are you sure you want to delete this blog post?")) {
+            removeBlog(id);
+        }
+    };
+
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 relative">
             <div className="flex justify-between items-center mb-10">
@@ -164,13 +214,15 @@ export default function AdminDashboardPage() {
                         {activeTab === 'overview' ? 'Platform Overview' :
                             activeTab === 'companies' ? 'Company Listings' :
                                 activeTab === 'users' ? 'User Directory' :
-                                    activeTab === 'teams' ? 'Team Management' : 'Portal Settings'}
+                                    activeTab === 'teams' ? 'Team Management' :
+                                        activeTab === 'blogs' ? 'Blog Posts' : 'Portal Settings'}
                     </h1>
                     <p className="text-muted mt-1">
                         {activeTab === 'overview' ? 'Manage platform metrics and global orders.' :
                             activeTab === 'companies' ? 'Add, edit or remove companies from the marketplace.' :
                                 activeTab === 'users' ? 'Manage platform access and user roles.' :
-                                    activeTab === 'teams' ? 'Create teams and assign Relationship Managers.' : 'Configure global platform parameters.'}
+                                    activeTab === 'teams' ? 'Create teams and assign Relationship Managers.' :
+                                        activeTab === 'blogs' ? 'Create, edit and publish articles for customers.' : 'Configure global platform parameters.'}
                     </p>
                 </div>
                 {(activeTab === 'overview' || activeTab === 'companies') && (
@@ -189,6 +241,12 @@ export default function AdminDashboardPage() {
                     <Button onClick={() => setIsCreateTeamModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-md shadow-primary/20">
                         <Icon name="PlusIcon" size={16} className="mr-2" />
                         Create Team
+                    </Button>
+                )}
+                {activeTab === 'blogs' && (
+                    <Button onClick={openBlogAdd} className="bg-primary hover:bg-primary/90 text-white rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-md shadow-primary/20">
+                        <Icon name="PlusIcon" size={16} className="mr-2" />
+                        Create Article
                     </Button>
                 )}
             </div>
@@ -505,6 +563,77 @@ export default function AdminDashboardPage() {
                                                         Delete
                                                     </Button>
                                                 </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {activeTab === 'blogs' && (
+                <Card className="border-border shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
+                        <div>
+                            <CardTitle className="font-display font-medium text-lg">Blog Management</CardTitle>
+                            <CardDescription className="text-muted">Manage company news, market updates, and educational articles.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                        <TableHead className="text-muted font-semibold pl-6">Title</TableHead>
+                                        <TableHead className="text-muted font-semibold">Status</TableHead>
+                                        <TableHead className="text-muted font-semibold">Views</TableHead>
+                                        <TableHead className="text-muted font-semibold">Published</TableHead>
+                                        <TableHead className="text-right text-muted font-semibold pr-6">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {blogs.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center p-8 text-muted italic">No blog posts found.</TableCell>
+                                        </TableRow>
+                                    ) : blogs.map(blog => (
+                                        <TableRow key={blog.id} className="border-border hover:bg-surface/30">
+                                            <TableCell className="font-medium text-foreground pl-6 max-w-xs truncate">
+                                                {blog.title}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${blog.status === 'published' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-600'}`}>
+                                                    {blog.status}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-muted">
+                                                <div className="flex items-center gap-1">
+                                                    <Icon name="EyeIcon" size={14} />
+                                                    {blog.views}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-muted text-xs">
+                                                {blog.publishedAt ? new Date(blog.publishedAt).toLocaleDateString() : '-'}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6 whitespace-nowrap">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-primary hover:bg-primary/5 text-[10px] font-bold uppercase tracking-widest mr-1"
+                                                    onClick={() => openBlogEdit(blog)}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 text-[10px] font-bold uppercase tracking-widest"
+                                                    onClick={() => handleBlogDelete(blog.id)}
+                                                >
+                                                    Delete
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -1042,6 +1171,83 @@ export default function AdminDashboardPage() {
                         </div>
                     );
                 })()
+            )}
+            {/* Blog Edit / Add Modal */}
+            {editingBlog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface/30">
+                            <h3 className="font-display text-xl font-medium text-foreground">
+                                {isBlogAddMode ? 'Create New Article' : `Edit Article`}
+                            </h3>
+                            <button onClick={() => setEditingBlog(null)} className="text-muted hover:text-foreground hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                <Icon name="XMarkIcon" size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Title</label>
+                                <Input
+                                    value={blogFormValues.title || ''}
+                                    onChange={e => setBlogFormValues({ ...blogFormValues, title: e.target.value })}
+                                    placeholder="e.g. Swiggy Pre-IPO: Is it the right time to buy?"
+                                    className="h-10 border-border"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Slug (URL)</label>
+                                    <Input
+                                        value={blogFormValues.slug || ''}
+                                        onChange={e => setBlogFormValues({ ...blogFormValues, slug: e.target.value })}
+                                        placeholder="swiggy-pre-ipo-buy-guide"
+                                        className="h-10 border-border"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Status</label>
+                                    <select
+                                        className="w-full h-10 px-3 bg-white border border-border rounded-lg text-sm font-semibold"
+                                        value={blogFormValues.status}
+                                        onChange={e => setBlogFormValues({ ...blogFormValues, status: e.target.value })}
+                                    >
+                                        <option value="draft">Draft</option>
+                                        <option value="published">Published</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Excerpt (Summary)</label>
+                                <textarea
+                                    className="w-full h-20 p-3 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
+                                    value={blogFormValues.excerpt || ''}
+                                    onChange={e => setBlogFormValues({ ...blogFormValues, excerpt: e.target.value })}
+                                    placeholder="Brief summary for the blog list page..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-semibold text-foreground mb-1 block">Content (HTML/Markdown Supported)</label>
+                                <textarea
+                                    className="w-full h-64 p-3 text-sm border border-border rounded-lg bg-white focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none font-mono"
+                                    value={blogFormValues.content || ''}
+                                    onChange={e => setBlogFormValues({ ...blogFormValues, content: e.target.value })}
+                                    placeholder="Write your article here..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-border bg-surface/50 flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setEditingBlog(null)}>Cancel</Button>
+                            <Button className="bg-primary hover:bg-primary/90 text-white" onClick={handleBlogSave}>
+                                {isBlogAddMode ? 'Publish Article' : 'Update Article'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

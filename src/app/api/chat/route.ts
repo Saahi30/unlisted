@@ -7,7 +7,7 @@ import { streamText } from 'ai';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-    const { messages, userId, selectedCompanyId } = await req.json();
+    const { messages, userId, selectedCompanyId, blogContext } = await req.json();
 
     const supabase = await createClient(cookies());
 
@@ -49,6 +49,15 @@ You give insights into the unlisted market. Wait for users to ask.
         }
     } else {
         systemContext += `\n\nThe user has NOT selected a specific stock to discuss yet. Offer to discuss their portfolio or ask them to select a stock from the platform to get detailed, exclusive intelligence.`;
+    }
+
+    // 3. Blog Context (if provided from a blog page)
+    if (blogContext) {
+        systemContext += `\n\nCURRENT ARTICLE CONTEXT:\nTitle: ${blogContext.title}\nExcerpt: ${blogContext.excerpt}\nContent: ${blogContext.content}\n`;
+        systemContext += `\nYou must analyze this article for the user. Highlight what is important for them based on their profile and portfolio. 
+        If they have shares in the company mentioned in the article (or similar sector companies), explain the direct impact. 
+        If they don't have shares, explain why this might be an opportunity or risk they should know about.
+        Keep it sharp, professional, and insightful. No fluff.`;
     }
 
     const result = streamText({

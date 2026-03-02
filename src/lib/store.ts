@@ -62,6 +62,19 @@ export interface ExtendedOrder {
     notes: string[];
 }
 
+export interface Blog {
+    id: string;
+    title: string;
+    slug: string;
+    content: string; // HTML or Markdown
+    excerpt: string;
+    authorId: string;
+    status: 'draft' | 'published';
+    views: number;
+    createdAt: string;
+    publishedAt?: string;
+}
+
 interface AppState {
     orders: ExtendedOrder[];
     leads: Lead[];
@@ -69,6 +82,7 @@ interface AppState {
     dematRequests: DematRequest[];
     users: User[];
     teams: Team[];
+    blogs: Blog[];
     addOrder: (order: ExtendedOrder) => void;
     updateOrderStatus: (id: string, status: OrderStatus, deliveryDetails?: any, txProofUrl?: string) => void;
     addOrderNote: (id: string, note: string) => void;
@@ -86,6 +100,10 @@ interface AppState {
     addTeamNote: (id: string, note: string) => void;
     updateTeam: (team: Team) => void;
     removeTeam: (id: string) => void;
+    addBlog: (blog: Blog) => void;
+    updateBlog: (blog: Blog) => void;
+    removeBlog: (id: string) => void;
+    incrementBlogViews: (id: string) => void;
     rmTargets: Record<string, number>;
     fetchInitialData: () => Promise<void>;
 }
@@ -112,6 +130,7 @@ export const useAppStore = create<AppState>()(
             users: [...MOCK_USERS] as User[],
             teams: [],
             dematRequests: [],
+            blogs: [],
             rmTargets: {
                 'sls_1': 6000000,
                 'sls_2': 8000000
@@ -265,6 +284,54 @@ export const useAppStore = create<AppState>()(
                 }));
                 await supabase.from('teams').delete().eq('id', id);
             },
+            addBlog: async (blog) => {
+                const id = blog.id.startsWith('blog_') ? uuidv4() : blog.id;
+                const newBlog = { ...blog, id };
+                set((state) => ({ blogs: [newBlog, ...state.blogs] }));
+
+                await supabase.from('blogs').insert([{
+                    id,
+                    title: blog.title,
+                    slug: blog.slug,
+                    content: blog.content,
+                    excerpt: blog.excerpt,
+                    author_id: blog.authorId,
+                    status: blog.status,
+                    views: blog.views,
+                    published_at: blog.publishedAt
+                }]);
+            },
+            updateBlog: async (blog) => {
+                set((state) => ({
+                    blogs: state.blogs.map(b => b.id === blog.id ? blog : b)
+                }));
+
+                await supabase.from('blogs').update({
+                    title: blog.title,
+                    slug: blog.slug,
+                    content: blog.content,
+                    excerpt: blog.excerpt,
+                    status: blog.status,
+                    views: blog.views,
+                    published_at: blog.publishedAt
+                }).eq('id', blog.id);
+            },
+            removeBlog: async (id) => {
+                set((state) => ({
+                    blogs: state.blogs.filter(b => b.id !== id)
+                }));
+                await supabase.from('blogs').delete().eq('id', id);
+            },
+            incrementBlogViews: async (id) => {
+                const blog = get().blogs.find(b => b.id === id);
+                if (blog) {
+                    const newViews = (blog.views || 0) + 1;
+                    set((state) => ({
+                        blogs: state.blogs.map(b => b.id === id ? { ...b, views: newViews } : b)
+                    }));
+                    await supabase.from('blogs').update({ views: newViews }).eq('id', id);
+                }
+            },
             fetchInitialData: async () => {
                 try {
                     // Fetch Profiles (Users)
@@ -314,6 +381,24 @@ export const useAppStore = create<AppState>()(
                         }));
                         set({ teams: parsedTeams as Team[] });
                     }
+
+                    // Fetch Blogs
+                    const { data: blogsData } = await supabase.from('blogs').select('*');
+                    if (blogsData && blogsData.length > 0) {
+                        const parsedBlogs = blogsData.map(b => ({
+                            id: b.id,
+                            title: b.title,
+                            slug: b.slug,
+                            content: b.content,
+                            excerpt: b.excerpt,
+                            authorId: b.author_id,
+                            status: b.status,
+                            views: b.views,
+                            createdAt: b.created_at,
+                            publishedAt: b.published_at
+                        }));
+                        set({ blogs: parsedBlogs as Blog[] });
+                    }
                 } catch (error) {
                     console.error('Error fetching initial data from Supabase:', error);
                 }
@@ -328,7 +413,8 @@ export const useAppStore = create<AppState>()(
                 dematRequests: state.dematRequests,
                 rmTargets: state.rmTargets,
                 users: state.users,
-                teams: state.teams
+                teams: state.teams,
+                blogs: state.blogs
             })
         }
     )

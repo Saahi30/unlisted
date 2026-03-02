@@ -24,9 +24,10 @@ export default function Header() {
             <AppLogo size={32} text="ShareSaathi" />
 
             <div className="hidden md:flex items-center gap-10 text-xs font-medium tracking-widest uppercase text-muted">
-                <a href="#how-it-works" className="hover:text-foreground transition-colors link-underline">How It Works</a>
-                <a href="#companies" className="hover:text-foreground transition-colors link-underline">Companies</a>
-                <a href="#why-us" className="hover:text-foreground transition-colors link-underline">Why Us</a>
+                <Link href="/#how-it-works" className="hover:text-foreground transition-colors link-underline">How It Works</Link>
+                <Link href="/#companies" className="hover:text-foreground transition-colors link-underline">Companies</Link>
+                <Link href="/blogs" className="hover:text-foreground transition-colors link-underline">Blogs</Link>
+                <Link href="/#why-us" className="hover:text-foreground transition-colors link-underline">Why Us</Link>
             </div>
 
             <div className="flex items-center gap-4">
