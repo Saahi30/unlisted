@@ -7,6 +7,8 @@ import Footer from '@/components/Footer';
 import { useAppStore } from '@/lib/store';
 import Icon from '@/components/ui/AppIcon';
 import BlogAssistant from '@/components/chat/BlogAssistant';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function BlogDetailPage() {
     const { slug } = useParams();
@@ -86,11 +88,10 @@ export default function BlogDetailPage() {
                             </div>
                         </header>
 
-                        <div className="prose prose-lg prose-slate max-w-none prose-headings:font-display prose-headings:font-light prose-headings:tracking-tight prose-a:text-primary animate-in slide-in-from-bottom-8 duration-1000">
-                            {/* In a real app we'd use something like react-markdown or dangerouslySetInnerHTML with sanitizer */}
-                            <div className="whitespace-pre-wrap leading-relaxed space-y-8 text-slate-700 font-light text-xl">
+                        <div className="prose prose-xl prose-slate max-w-none prose-headings:font-display prose-headings:font-light prose-headings:tracking-tight prose-a:text-primary animate-in slide-in-from-bottom-8 duration-1000 text-slate-700 font-light leading-relaxed">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {blog.content}
-                            </div>
+                            </ReactMarkdown>
                         </div>
 
                         {/* CTA at the bottom */}
