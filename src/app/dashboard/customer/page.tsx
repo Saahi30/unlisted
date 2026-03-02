@@ -75,6 +75,21 @@ export default function CustomerDashboardPage() {
                     <p className="text-muted mt-1">Welcome back, {user.name}. Here is a summary of your unlisted investments.</p>
                 </div>
                 <div className="flex gap-3">
+                    <Button
+                        variant="ghost"
+                        className="text-primary hover:bg-primary/5 flex items-center gap-2 font-semibold"
+                        onClick={() => {
+                            window.dispatchEvent(new CustomEvent('sharesaathi-chat-trigger', {
+                                detail: {
+                                    message: "Please analyze my portfolio value, holdings, and suggest any upcoming opportunities based on my current risk.",
+                                    companyId: 'general'
+                                }
+                            }));
+                        }}
+                    >
+                        <Icon name="CpuChipIcon" size={18} />
+                        Analyze Portfolio
+                    </Button>
                     <Button variant="outline" className="border-border hover:bg-surface" asChild>
                         <Link href="/dashboard/customer/dematerialize">Physical to Digital</Link>
                     </Button>

@@ -19,6 +19,27 @@ export default function ShareSaathiChat() {
     const [messages, setMessages] = useState<{ id: string, role: 'user' | 'assistant', content: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Listen for external chat triggers (e.g. from Dashboard Portfolio button)
+    useEffect(() => {
+        const handleTrigger = (event: any) => {
+            const { message, companyId } = event.detail || {};
+            setIsOpen(true);
+            if (companyId) setSelectedCompanyId(companyId);
+            if (message) {
+                // Clear and send if needed, or just set input
+                setInput(message);
+                // Auto-submit if we want immediate analysis
+                setTimeout(() => {
+                    const submitBtn = document.getElementById('chat-submit-btn');
+                    submitBtn?.click();
+                }, 100);
+            }
+        };
+
+        window.addEventListener('sharesaathi-chat-trigger', handleTrigger);
+        return () => window.removeEventListener('sharesaathi-chat-trigger', handleTrigger);
+    }, []);
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
@@ -141,6 +162,7 @@ export default function ShareSaathiChat() {
                             className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
                         />
                         <button
+                            id="chat-submit-btn"
                             type="submit"
                             disabled={!input.trim() || isLoading}
                             className="bg-primary text-white p-2 rounded-full hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center min-w-[36px]"

@@ -27,10 +27,23 @@ You give insights into the unlisted market. Wait for users to ask.
 
         // Fetch User's Orders
         const { data: orders } = await supabase.from('orders').select('*, companies(name)').eq('user_id', userId);
+
+        // Fetch User's Demat Requests
+        const { data: dematRequests } = await supabase.from('demat_requests').select('*').eq('user_id', userId);
+
         if (orders && orders.length > 0) {
-            systemContext += `\nUSER PORTFOLIO / ORDERS:\n${orders.map(o => `- ${o.type.toUpperCase()}: ${o.quantity} shares of ${o.companies?.name} at ₹${o.price} (Status: ${o.status})`).join('\n')}\n`;
+            const settledOrders = orders.filter(o => o.status === 'in_holding');
+            const totalInvested = settledOrders.reduce((sum, o) => sum + (Number(o.price) * o.quantity), 0);
+
+            systemContext += `\nUSER PORTFOLIO SUMMARY:\n- Total Setled Investment: ₹${totalInvested.toLocaleString()}\n- Active Holdings: ${new Set(settledOrders.map(o => o.companies?.name)).size} Companies\n`;
+
+            systemContext += `\nDETAILED ORDERS / HOLDINGS:\n${orders.map(o => `- ${o.type.toUpperCase()}: ${o.quantity} shares of ${o.companies?.name} at ₹${o.price} (Current Status: ${o.status})`).join('\n')}\n`;
         } else {
-            systemContext += `\nThe user has no current orders.\n`;
+            systemContext += `\nThe user has no current orders or holdings.\n`;
+        }
+
+        if (dematRequests && dematRequests.length > 0) {
+            systemContext += `\nPENDING PHYSICAL-TO-DIGITAL (DEMAT) REQUESTS:\n${dematRequests.map(r => `- ${r.company_name}: ${r.quantity} shares (Status: ${r.status})`).join('\n')}\n`;
         }
     }
 
