@@ -1,0 +1,280 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import Icon from '@/components/ui/AppIcon';
+import AgentMarketplaceTab from '@/components/agent/AgentMarketplaceTab';
+import AgentLinksTab from '@/components/agent/AgentLinksTab';
+import AgentEarningsTab from '@/components/agent/AgentEarningsTab';
+
+export default function AgentDashboardPage() {
+    const { user } = useAuth();
+    const searchParams = useSearchParams();
+    const tabString = (searchParams?.get('tab') || 'marketplace') as string;
+    const activeTab = tabString;
+
+    const [kycData, setKycData] = useState<any>(null);
+    const [kycLoading, setKycLoading] = useState(true);
+    const [submittingKyc, setSubmittingKyc] = useState(false);
+
+    // KYC Form State
+    const [pan, setPan] = useState('');
+    const [aadhar, setAadhar] = useState('');
+    const [bankDetails, setBankDetails] = useState({ account_name: '', account_number: '', ifsc: '' });
+
+    const supabase = createClient();
+
+    useEffect(() => {
+        if (!user) return;
+        const fetchKyc = async () => {
+            const { data, error } = await supabase
+                .from('agent_profiles')
+                .select('*')
+                .eq('agent_id', user.id)
+                .single();
+
+            if (data) {
+                setKycData(data);
+                setPan(data.pan_number || '');
+                setAadhar(data.aadhar_number || '');
+                setBankDetails(data.bank_details || { account_name: '', account_number: '', ifsc: '' });
+            } else if (user.id === 'agt_1') {
+                // Simulator mock
+                setKycData({
+                    kyc_status: 'pending',
+                    pan_number: '',
+                    aadhar_number: '',
+                    bank_details: { account_name: '', account_number: '', ifsc: '' }
+                });
+            }
+            setKycLoading(false);
+        };
+        fetchKyc();
+    }, [user, supabase]);
+
+    const submitKyc = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user) return;
+        setSubmittingKyc(true);
+
+        // Ensure standard customers don't overwrite if they aren't agents. 
+        // We bypass in simulator for 'agt_1'.
+        const payload = {
+            agent_id: user.id,
+            pan_number: pan,
+            aadhar_number: aadhar,
+            bank_details: bankDetails,
+            kyc_status: 'pending',
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase
+            .from('agent_profiles')
+            .upsert(payload)
+            .select()
+            .single();
+
+        if (!error) {
+            setKycData({ ...kycData, ...payload });
+            alert('KYC Submitted Successfully! Awaiting Admin Approval.');
+        } else if (user.id === 'agt_1') {
+            // Simulator failover
+            setKycData({ ...payload, kyc_status: 'pending' });
+            alert('Simulator: KYC Submitted Success (Mocked).');
+        } else {
+            alert('Failed to submit KYC. ' + error.message);
+        }
+        setSubmittingKyc(false);
+    };
+
+    if (kycLoading) {
+        return (
+            <div className="flex h-[80vh] items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+        );
+    }
+
+    const needsKyc = !kycData || !kycData.kyc_status || kycData.kyc_status === 'pending' || kycData.kyc_status === 'rejected';
+    const isApproved = kycData?.kyc_status === 'approved';
+
+    // If they haven't submitted or it's pending/rejected, force them to the KYC view
+    if (needsKyc && activeTab !== 'kyc') {
+        return (
+            <div className="p-8 max-w-2xl mx-auto mt-10">
+                <div className="bg-white rounded-2xl p-8 border border-border shadow-xl text-center">
+                    <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Icon name="DocumentCheckIcon" size={32} />
+                    </div>
+                    <h1 className="text-2xl font-bold font-display text-foreground mb-4">Complete Your Partner KYC</h1>
+                    <p className="text-muted mb-8 leading-relaxed">
+                        To start generating custom client links and earning margins, you need to verify your identity.
+                        Please submit your PAN, Aadhar, and Bank Details securely.
+                    </p>
+                    <button
+                        onClick={() => window.location.search = '?tab=kyc'}
+                        className="bg-primary text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-primary/90 transition-all focus:ring-4 focus:ring-primary/20"
+                    >
+                        Start KYC Verification
+                    </button>
+                    {kycData?.kyc_status === 'pending' && (
+                        <p className="text-sm font-semibold text-amber-600 mt-4 px-4 py-2 bg-amber-50 rounded-lg inline-block">
+                            Your last submission is currently under review by an administrator.
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-fade-up">
+
+            {/* Header info */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold font-display text-foreground tracking-tight">Partner Dashboard</h1>
+                    <p className="text-muted mt-2 tracking-wide text-sm">
+                        {isApproved ? 'Manage your catalogue, links, and earnings.' : 'Complete your KYC below.'}
+                    </p>
+                </div>
+                {isApproved && (
+                    <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 shadow-sm">
+                        <Icon name="ShieldCheckIcon" size={18} className="text-green-600" />
+                        <span className="text-sm font-bold tracking-wide">Verified Partner</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Content Tabs */}
+            {activeTab === 'kyc' && (
+                <div className="bg-white rounded-2xl border border-border shadow-sm flex overflow-hidden">
+                    <div className="w-full md:w-2/3 p-8 border-r border-border">
+                        <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-3">
+                            <Icon name="IdentificationIcon" className="text-primary" />
+                            Bank & Identity Verification
+                        </h2>
+
+                        {kycData?.kyc_status === 'pending' && (
+                            <div className="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 flex gap-3 text-amber-800 text-sm font-medium">
+                                <Icon name="ClockIcon" className="text-amber-500 shrink-0" />
+                                <p>Your KYC application is currently under review. You can update your details if needed.</p>
+                            </div>
+                        )}
+                        {kycData?.kyc_status === 'rejected' && (
+                            <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 flex gap-3 text-red-800 text-sm font-medium">
+                                <Icon name="XCircleIcon" className="text-red-500 shrink-0" />
+                                <p>Your KYC was rejected. Please verify the details below and submit again.</p>
+                            </div>
+                        )}
+
+                        <form onSubmit={submitKyc} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-xs font-bold text-muted uppercase tracking-widest mb-2 block">PAN Number</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={pan}
+                                        onChange={e => setPan(e.target.value.toUpperCase())}
+                                        className="w-full bg-surface/50 border border-border rounded-xl px-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-mono uppercase"
+                                        placeholder="ABCDE1234F"
+                                        disabled={isApproved}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-muted uppercase tracking-widest mb-2 block">Aadhar Number</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={aadhar}
+                                        onChange={e => setAadhar(e.target.value)}
+                                        className="w-full bg-surface/50 border border-border rounded-xl px-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-mono"
+                                        placeholder="1234 5678 9012"
+                                        disabled={isApproved}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-border mt-6">
+                                <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Bank Detail for Payouts</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-semibold text-muted mb-1 block">Account Holder Name</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={bankDetails.account_name}
+                                            onChange={e => setBankDetails({ ...bankDetails, account_name: e.target.value })}
+                                            className="w-full border border-border rounded-lg px-4 py-2.5 focus:border-primary transition-all"
+                                            placeholder="As per bank records"
+                                            disabled={isApproved}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs font-semibold text-muted mb-1 block">Account Number</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={bankDetails.account_number}
+                                                onChange={e => setBankDetails({ ...bankDetails, account_number: e.target.value })}
+                                                className="w-full border border-border rounded-lg px-4 py-2.5 focus:border-primary transition-all font-mono"
+                                                placeholder="XXXXXXXXXXXX"
+                                                disabled={isApproved}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-muted mb-1 block">IFSC Code</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={bankDetails.ifsc}
+                                                onChange={e => setBankDetails({ ...bankDetails, ifsc: e.target.value.toUpperCase() })}
+                                                className="w-full border border-border rounded-lg px-4 py-2.5 focus:border-primary transition-all font-mono uppercase"
+                                                placeholder="HDFC0000123"
+                                                disabled={isApproved}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!isApproved && (
+                                <div className="pt-4 flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={submittingKyc}
+                                        className="bg-primary text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-primary/90 transition-all flex items-center gap-2"
+                                    >
+                                        {submittingKyc ? 'Submitting...' : 'Submit Documents'}
+                                        {!submittingKyc && <Icon name="ArrowRightIcon" size={16} />}
+                                    </button>
+                                </div>
+                            )}
+                        </form>
+                    </div>
+                    <div className="hidden md:flex w-1/3 bg-slate-50 flex-col items-center justify-center p-8 text-center text-slate-500">
+                        <Icon name="ShieldCheckIcon" size={48} className="mb-4 text-slate-300" />
+                        <h4 className="font-bold text-slate-700 mb-2">Secure Verification</h4>
+                        <p className="text-sm">Your data is stored securely and used only for complying with RBI & SEBI guidelines regarding financial transactions.</p>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'marketplace' && isApproved && (
+                <AgentMarketplaceTab />
+            )}
+
+            {activeTab === 'links' && isApproved && (
+                <AgentLinksTab />
+            )}
+
+            {activeTab === 'earnings' && isApproved && (
+                <AgentEarningsTab kycData={kycData} />
+            )}
+        </div>
+    );
+}

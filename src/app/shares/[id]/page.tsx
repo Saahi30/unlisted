@@ -6,10 +6,11 @@ import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, TrendingUp, ShieldAlert, LineChart } from 'lucide-react';
+import CompanyPriceChart from '@/components/CompanyPriceChart';
 
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { companies } = useAppStore();
+    const { companies, historicalPrices } = useAppStore();
     const company = companies.find(c => c.id === id);
 
     if (!company) {
@@ -64,13 +65,17 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                     <Card>
                         <CardHeader className="border-b border-slate-100 pb-4">
                             <CardTitle className="text-lg flex items-center">
-                                <LineChart className="mr-2 h-5 w-5 text-blue-600" /> Valuation History (Mock)
+                                <LineChart className="mr-2 h-5 w-5 text-blue-600" /> Valuation History
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6">
-                            <div className="h-48 w-full bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center text-slate-400">
-                                [Interactive Chart Placeholder: Series B -&gt; Series C -&gt; Pre-IPO]
-                            </div>
+                            <CompanyPriceChart
+                                data={historicalPrices
+                                    .filter(p => p.companyId === company.id)
+                                    .map(p => ({ date: p.priceDate, value: p.priceValue }))
+                                }
+                                color="#2563eb"
+                            />
                         </CardContent>
                     </Card>
 

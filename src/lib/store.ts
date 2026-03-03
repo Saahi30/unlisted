@@ -75,6 +75,13 @@ export interface Blog {
     publishedAt?: string;
 }
 
+export interface HistoricalPrice {
+    id: string;
+    companyId: string;
+    priceDate: string;
+    priceValue: number;
+}
+
 interface AppState {
     orders: ExtendedOrder[];
     leads: Lead[];
@@ -83,6 +90,7 @@ interface AppState {
     users: User[];
     teams: Team[];
     blogs: Blog[];
+    historicalPrices: HistoricalPrice[];
     addOrder: (order: ExtendedOrder) => void;
     updateOrderStatus: (id: string, status: OrderStatus, deliveryDetails?: any, txProofUrl?: string) => void;
     addOrderNote: (id: string, note: string) => void;
@@ -104,6 +112,8 @@ interface AppState {
     updateBlog: (blog: Blog) => void;
     removeBlog: (id: string) => void;
     incrementBlogViews: (id: string) => void;
+    addHistoricalPrice: (companyId: string, date: string, value: number) => Promise<void>;
+    removeHistoricalPrice: (id: string) => Promise<void>;
     rmTargets: Record<string, number>;
     fetchInitialData: () => Promise<void>;
 }
@@ -131,6 +141,7 @@ export const useAppStore = create<AppState>()(
             teams: [],
             dematRequests: [],
             blogs: [],
+            historicalPrices: [],
             rmTargets: {
                 'sls_1': 6000000,
                 'sls_2': 8000000
@@ -332,6 +343,24 @@ export const useAppStore = create<AppState>()(
                     await supabase.from('blogs').update({ views: newViews }).eq('id', id);
                 }
             },
+            addHistoricalPrice: async (companyId, date, value) => {
+                const id = uuidv4();
+                const newPrice = { id, companyId, priceDate: date, priceValue: value };
+                set((state) => ({ historicalPrices: [...state.historicalPrices, newPrice] }));
+
+                await supabase.from('company_historical_prices').insert([{
+                    id,
+                    company_id: companyId,
+                    price_date: date,
+                    price_value: value
+                }]);
+            },
+            removeHistoricalPrice: async (id) => {
+                set((state) => ({
+                    historicalPrices: state.historicalPrices.filter(p => p.id !== id)
+                }));
+                await supabase.from('company_historical_prices').delete().eq('id', id);
+            },
             fetchInitialData: async () => {
                 try {
                     // Fetch Profiles (Users)
@@ -402,6 +431,17 @@ export const useAppStore = create<AppState>()(
                         // Fallback to MOCK_BLOGS if DB is empty
                         set({ blogs: MOCK_BLOGS as any[] });
                     }
+                    // Fetch Historical Prices
+                    const { data: historicalData } = await supabase.from('company_historical_prices').select('*').order('price_date', { ascending: true });
+                    if (historicalData) {
+                        const parsedPrices = historicalData.map(hp => ({
+                            id: hp.id,
+                            companyId: hp.company_id,
+                            priceDate: hp.price_date,
+                            priceValue: hp.price_value
+                        }));
+                        set({ historicalPrices: parsedPrices as HistoricalPrice[] });
+                    }
                 } catch (error) {
                     console.error('Error fetching initial data from Supabase:', error);
                 }
@@ -417,7 +457,8 @@ export const useAppStore = create<AppState>()(
                 rmTargets: state.rmTargets,
                 users: state.users,
                 teams: state.teams,
-                blogs: state.blogs
+                blogs: state.blogs,
+                historicalPrices: state.historicalPrices
             })
         }
     )

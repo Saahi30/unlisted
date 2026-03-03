@@ -10,6 +10,9 @@ import Icon from '@/components/ui/AppIcon';
 import { useAppStore, User, Team } from '@/lib/store';
 import { Company } from '@/lib/mock-data';
 import { UserRole } from '@/lib/auth-context';
+import AgentKycTab from '@/components/admin/AgentKycTab';
+import AgentSettingsConfig from '@/components/admin/AgentSettingsConfig';
+import AgentPayoutsTab from '@/components/admin/AgentPayoutsTab';
 
 export default function AdminDashboardPage() {
     return (
@@ -27,11 +30,11 @@ function AdminDashboardContent() {
     const { orders, updateOrderStatus, companies, addCompany, updateCompany, removeCompany, users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote, blogs, addBlog, updateBlog, removeBlog } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'blogs' || tab === 'settings') {
+        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'blogs' || tab === 'settings' || tab === 'agents') {
             setActiveTab(tab as any);
         }
     }, [searchParams]);
@@ -74,6 +77,11 @@ function AdminDashboardContent() {
     const [blogFormValues, setBlogFormValues] = useState<any>({});
     const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
     const [aiBlogPrompt, setAiBlogPrompt] = useState({ topic: '', keywords: '' });
+
+    // Historical prices management
+    const { historicalPrices, addHistoricalPrice, removeHistoricalPrice } = useAppStore();
+    const [managingPricesForCompanyId, setManagingPricesForCompanyId] = useState<string | null>(null);
+    const [priceEntry, setPriceEntry] = useState({ date: new Date().toISOString().split('T')[0], value: 0 });
 
     const settledVal = orders.filter(o => o.status === 'in_holding').reduce((sum, o) => sum + o.totalAmount, 0);
 
@@ -256,14 +264,16 @@ function AdminDashboardContent() {
                             activeTab === 'companies' ? 'Company Listings' :
                                 activeTab === 'users' ? 'User Directory' :
                                     activeTab === 'teams' ? 'Team Management' :
-                                        activeTab === 'blogs' ? 'Blog Posts' : 'Portal Settings'}
+                                        activeTab === 'blogs' ? 'Blog Posts' :
+                                            activeTab === 'agents' ? 'Agent Onboarding' : 'Portal Settings'}
                     </h1>
                     <p className="text-muted mt-1">
                         {activeTab === 'overview' ? 'Manage platform metrics and global orders.' :
                             activeTab === 'companies' ? 'Add, edit or remove companies from the marketplace.' :
                                 activeTab === 'users' ? 'Manage platform access and user roles.' :
                                     activeTab === 'teams' ? 'Create teams and assign Relationship Managers.' :
-                                        activeTab === 'blogs' ? 'Create, edit and publish articles for customers.' : 'Configure global platform parameters.'}
+                                        activeTab === 'blogs' ? 'Create, edit and publish articles for customers.' :
+                                            activeTab === 'agents' ? 'Review and manage Partner Agent KYC submissions.' : 'Configure global platform parameters.'}
                     </p>
                 </div>
                 {(activeTab === 'overview' || activeTab === 'companies') && (
@@ -337,16 +347,16 @@ function AdminDashboardContent() {
                                 </p>
                             </CardContent>
                         </Card>
-                        <Card className="border-border shadow-sm group">
+                        <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=agents')}>
                             <CardContent className="p-6">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-100 transition-colors">
                                         <Icon name="IdentificationIcon" size={20} />
                                     </div>
                                 </div>
-                                <div className="text-sm font-medium text-muted mb-1">Platform Activity</div>
-                                <div className="text-2xl font-bold text-amber-600">{orders.length}</div>
-                                <p className="text-xs text-muted mt-2">Active tracked orders</p>
+                                <div className="text-sm font-medium text-muted mb-1">Partner Agents</div>
+                                <div className="text-2xl font-bold text-amber-600">KYC</div>
+                                <p className="text-xs text-muted mt-2">Manage sub-brokers</p>
                             </CardContent>
                         </Card>
                         <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=companies')}>
@@ -450,6 +460,14 @@ function AdminDashboardContent() {
                                             </TableCell>
                                             <TableCell className="font-semibold">₹{company.currentAskPrice.toLocaleString()}</TableCell>
                                             <TableCell className="text-right pr-6 whitespace-nowrap">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-primary hover:text-primary hover:bg-primary/10 transition-colors uppercase tracking-widest text-[10px] font-bold mr-1"
+                                                    onClick={() => setManagingPricesForCompanyId(company.id)}
+                                                >
+                                                    Price History
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -686,44 +704,54 @@ function AdminDashboardContent() {
             )}
 
             {activeTab === 'settings' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <Card className="border-border shadow-sm">
-                        <CardHeader className="border-b border-border/50 bg-white">
-                            <CardTitle className="font-display font-medium text-lg">Platform Parameters</CardTitle>
-                            <CardDescription>Configure global transaction limits and fees.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Global Buy Fee (%)</label>
-                                <Input defaultValue="1.5" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Minimum Transaction (INR)</label>
-                                <Input defaultValue="100,000" />
-                            </div>
-                            <Button className="w-full bg-primary text-white mt-4">Save Platform Settings</Button>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-border shadow-sm">
-                        <CardHeader className="border-b border-border/50 bg-white">
-                            <CardTitle className="font-display font-medium text-lg">System Health</CardTitle>
-                            <CardDescription>Monitor platform performance and uptime.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-4">
-                            <div className="flex justify-between items-center py-2 border-b border-border/30">
-                                <span className="text-sm">API Connectivity</span>
-                                <span className="text-xs font-bold text-green-600">Stable</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/30">
-                                <span className="text-sm">Database Load</span>
-                                <span className="text-xs font-bold text-primary">12% Normal</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                                <span className="text-sm">Last Backup</span>
-                                <span className="text-xs text-muted">2 hours ago</span>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <Card className="border-border shadow-sm">
+                            <CardHeader className="border-b border-border/50 bg-white">
+                                <CardTitle className="font-display font-medium text-lg">Platform Parameters</CardTitle>
+                                <CardDescription>Configure global transaction limits and fees.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-6 space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Global Buy Fee (%)</label>
+                                    <Input defaultValue="1.5" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Minimum Transaction (INR)</label>
+                                    <Input defaultValue="100,000" />
+                                </div>
+                                <Button className="w-full bg-primary text-white mt-4">Save Platform Settings</Button>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border shadow-sm">
+                            <CardHeader className="border-b border-border/50 bg-white">
+                                <CardTitle className="font-display font-medium text-lg">System Health</CardTitle>
+                                <CardDescription>Monitor platform performance and uptime.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-6 space-y-4">
+                                <div className="flex justify-between items-center py-2 border-b border-border/30">
+                                    <span className="text-sm">API Connectivity</span>
+                                    <span className="text-xs font-bold text-green-600">Stable</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-border/30">
+                                    <span className="text-sm">Database Load</span>
+                                    <span className="text-xs font-bold text-primary">12% Normal</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2">
+                                    <span className="text-sm">Last Backup</span>
+                                    <span className="text-xs text-muted">2 hours ago</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <AgentSettingsConfig />
+                </div>
+            )}
+
+            {activeTab === 'agents' && (
+                <div className="space-y-6">
+                    <AgentKycTab />
+                    <AgentPayoutsTab />
                 </div>
             )}
 
@@ -1328,6 +1356,93 @@ function AdminDashboardContent() {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Historical Prices Management Modal */}
+            {managingPricesForCompanyId && (
+                (() => {
+                    const company = companies.find(c => c.id === managingPricesForCompanyId);
+                    const prices = historicalPrices.filter(p => p.companyId === managingPricesForCompanyId)
+                        .sort((a, b) => new Date(a.priceDate).getTime() - new Date(b.priceDate).getTime());
+
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+                            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex items-center justify-between p-5 border-b border-border bg-surface/30">
+                                    <h3 className="font-display text-xl font-medium text-foreground">
+                                        Price History: {company?.name}
+                                    </h3>
+                                    <button onClick={() => setManagingPricesForCompanyId(null)} className="text-muted hover:text-foreground hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                        <Icon name="XMarkIcon" size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="p-6 space-y-6">
+                                    {/* Add New Entry */}
+                                    <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+                                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Add Data Point</p>
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted uppercase block mb-1">Date</label>
+                                                <Input
+                                                    type="date"
+                                                    className="h-9 text-xs"
+                                                    value={priceEntry.date}
+                                                    onChange={e => setPriceEntry({ ...priceEntry, date: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted uppercase block mb-1">Value (INR)</label>
+                                                <Input
+                                                    type="number"
+                                                    className="h-9 text-xs"
+                                                    value={priceEntry.value}
+                                                    onChange={e => setPriceEntry({ ...priceEntry, value: Number(e.target.value) })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button
+                                            className="w-full bg-primary text-white h-9 text-xs"
+                                            onClick={async () => {
+                                                if (priceEntry.value <= 0) return alert('Value must be greater than 0');
+                                                await addHistoricalPrice(managingPricesForCompanyId, priceEntry.date, priceEntry.value);
+                                                setPriceEntry({ ...priceEntry, value: 0 });
+                                            }}
+                                        >
+                                            Add Point
+                                        </Button>
+                                    </div>
+
+                                    {/* Existing Prices List */}
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                        <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Historical Records</p>
+                                        {prices.length === 0 ? (
+                                            <p className="text-xs italic text-muted text-center py-4">No historical data points yet.</p>
+                                        ) : prices.map(price => (
+                                            <div key={price.id} className="flex justify-between items-center p-3 bg-surface/50 border border-border rounded-lg group">
+                                                <div>
+                                                    <p className="text-xs font-semibold text-foreground">{new Date(price.priceDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                    <p className="text-[10px] text-muted uppercase font-bold tracking-wider">₹{price.priceValue.toLocaleString()}</p>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => removeHistoricalPrice(price.id)}
+                                                >
+                                                    <Icon name="XMarkIcon" size={16} />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="px-6 py-4 border-t border-border bg-surface/50 flex justify-end">
+                                    <Button variant="outline" onClick={() => setManagingPricesForCompanyId(null)}>Close</Button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()
             )}
         </div>
     );

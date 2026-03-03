@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
-export type UserRole = 'customer' | 'admin' | 'staffmanager' | 'rm';
+export type UserRole = 'customer' | 'admin' | 'staffmanager' | 'rm' | 'agent';
 
 export interface User {
     id: string;
@@ -26,6 +26,7 @@ const mockUsers: Record<UserRole, User> = {
     admin: { id: 'adm_1', name: 'Admin Supervisor', email: 'admin@sharesaathi.com', role: 'admin' },
     staffmanager: { id: 'mgr_1', name: 'Sales Director', email: 'manager@sharesaathi.com', role: 'staffmanager' },
     rm: { id: 'sls_1', name: 'Relationship Agent', email: 'agent@sharesaathi.com', role: 'rm' },
+    agent: { id: 'agt_1', name: 'Partner Broker', email: 'partner@sharesaathi.com', role: 'agent' },
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -77,6 +77,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Clients', href: '/dashboard/sales?tab=clients', icon: 'UsersIcon' },
             { label: 'Deals', href: '/dashboard/sales?tab=orders', icon: 'BanknotesIcon' },
         ];
+    } else if (pathname.includes('/agent')) {
+        portalType = 'Partner Agent';
+        navItems = [
+            { label: 'Marketplace', href: '/dashboard/agent', icon: 'BuildingOfficeIcon' },
+            { label: 'My Links', href: '/dashboard/agent?tab=links', icon: 'LinkIcon' },
+            { label: 'Earnings', href: '/dashboard/agent?tab=earnings', icon: 'BanknotesIcon' },
+            { label: 'KYC Profile', href: '/dashboard/agent?tab=kyc', icon: 'IdentificationIcon' },
+        ];
     }
 
     return (

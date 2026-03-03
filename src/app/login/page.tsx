@@ -205,6 +205,7 @@ export default function LoginPage() {
                         <div className="flex flex-wrap justify-center gap-2">
                             <button onClick={(e) => { e.preventDefault(); login('customer'); }} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md text-xs font-bold hover:bg-blue-100">Customer</button>
                             <button onClick={(e) => { e.preventDefault(); login('rm'); }} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-md text-xs font-bold hover:bg-emerald-100">Sales RM</button>
+                            <button onClick={(e) => { e.preventDefault(); login('agent'); }} className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-md text-xs font-bold hover:bg-amber-100">Partner Agent</button>
                             <button onClick={(e) => { e.preventDefault(); login('staffmanager'); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-xs font-bold hover:bg-indigo-100">Manager</button>
                             <button onClick={(e) => { e.preventDefault(); login('admin'); }} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-md text-xs font-bold hover:bg-purple-100">Admin</button>
                         </div>
