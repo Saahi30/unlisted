@@ -29,6 +29,7 @@ export default function AgentKycTab() {
                     kyc_status: 'pending',
                     pan_number: 'SIMULATOR_PAN',
                     aadhar_number: 'SIMULATOR_AADHAR',
+                    cmr_uploaded: true,
                     profiles: { name: 'Partner Broker', email: 'partner@sharesaathi.com' }
                 }
             ]);
@@ -76,6 +77,7 @@ export default function AgentKycTab() {
                                     <TableHead className="pl-6 font-semibold">Agent Name</TableHead>
                                     <TableHead className="font-semibold">Email</TableHead>
                                     <TableHead className="font-semibold">PAN</TableHead>
+                                    <TableHead className="font-semibold text-center">Docs</TableHead>
                                     <TableHead className="font-semibold">Status</TableHead>
                                     <TableHead className="font-semibold text-right">Earned</TableHead>
                                     <TableHead className="font-semibold text-right">Withdrawn</TableHead>
@@ -93,6 +95,13 @@ export default function AgentKycTab() {
                                             <TableCell className="pl-6 font-medium">{agent.profiles?.name || 'Unknown'}</TableCell>
                                             <TableCell className="text-muted">{agent.profiles?.email || '-'}</TableCell>
                                             <TableCell className="font-mono text-xs">{agent.pan_number}</TableCell>
+                                            <TableCell className="text-center text-xs">
+                                                {agent.cmr_uploaded ? (
+                                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">CMR ✓</span>
+                                                ) : (
+                                                    <span className="bg-red-50 text-red-500 px-2 py-0.5 rounded font-bold">No CMR</span>
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                 <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md ${agent.kyc_status === 'approved' ? 'bg-green-50 text-green-600' :
                                                     agent.kyc_status === 'pending' ? 'bg-amber-50 text-amber-600' :

@@ -23,6 +23,7 @@ export default function AgentDashboardPage() {
     const [pan, setPan] = useState('');
     const [aadhar, setAadhar] = useState('');
     const [bankDetails, setBankDetails] = useState({ account_name: '', account_number: '', ifsc: '' });
+    const [cmrUploaded, setCmrUploaded] = useState(false);
 
     const supabase = createClient();
 
@@ -40,13 +41,15 @@ export default function AgentDashboardPage() {
                 setPan(data.pan_number || '');
                 setAadhar(data.aadhar_number || '');
                 setBankDetails(data.bank_details || { account_name: '', account_number: '', ifsc: '' });
+                setCmrUploaded(data.cmr_uploaded || false);
             } else if (user.id === 'agt_1') {
                 // Simulator mock
                 setKycData({
                     kyc_status: 'pending',
                     pan_number: '',
                     aadhar_number: '',
-                    bank_details: { account_name: '', account_number: '', ifsc: '' }
+                    bank_details: { account_name: '', account_number: '', ifsc: '' },
+                    cmr_uploaded: false
                 });
             }
             setKycLoading(false);
@@ -56,6 +59,12 @@ export default function AgentDashboardPage() {
 
     const submitKyc = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!cmrUploaded) {
+            alert('Please upload your Client Master Report (CMR) before submitting.');
+            return;
+        }
+
         if (!user) return;
         setSubmittingKyc(true);
 
@@ -66,6 +75,7 @@ export default function AgentDashboardPage() {
             pan_number: pan,
             aadhar_number: aadhar,
             bank_details: bankDetails,
+            cmr_uploaded: cmrUploaded,
             kyc_status: 'pending',
             updated_at: new Date().toISOString()
         };
@@ -239,6 +249,38 @@ export default function AgentDashboardPage() {
                                             />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-border mt-6">
+                                <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Dematerialization Details</h3>
+                                <div className={`relative p-4 rounded-xl border-2 border-dashed transition-all ${cmrUploaded ? 'border-green-200 bg-green-50/50' : 'border-border bg-slate-50'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${cmrUploaded ? 'bg-green-100 text-green-600' : 'bg-white border border-border text-muted'}`}>
+                                                {cmrUploaded ? <Icon name="CheckCircleIcon" size={18} /> : <Icon name="DocumentArrowUpIcon" size={18} />}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <p className="text-[11px] font-bold text-foreground uppercase tracking-wider">Client Master Report (CMR)</p>
+                                                </div>
+                                                <p className="text-[10px] text-muted">{cmrUploaded ? 'File ready' : 'PDF or Image required'}</p>
+                                            </div>
+                                        </div>
+                                        {!cmrUploaded ? (
+                                            <button
+                                                type="button"
+                                                className="h-8 px-4 text-[10px] font-bold uppercase bg-white border border-border rounded-md hover:bg-slate-50 transition-colors"
+                                                onClick={() => setCmrUploaded(true)}
+                                                disabled={isApproved}
+                                            >
+                                                Upload CMR
+                                            </button>
+                                        ) : (
+                                            <button type="button" onClick={() => setCmrUploaded(false)} className="text-[10px] text-red-500 font-bold hover:underline" disabled={isApproved}>Remove</button>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] text-muted mt-3">We need your CMR to verify your demat account ownership for transferring your partner shares.</p>
                                 </div>
                             </div>
 

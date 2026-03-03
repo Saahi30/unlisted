@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS agent_profiles (
     pan_number TEXT,
     aadhar_number TEXT,
     bank_details JSONB DEFAULT '{}'::jsonb, -- e.g., {"account_name": "", "account_number": "", "ifsc": ""}
+    cmr_uploaded BOOLEAN DEFAULT FALSE,
     kyc_status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
     total_earnings NUMERIC DEFAULT 0,
     withdrawn_earnings NUMERIC DEFAULT 0,
