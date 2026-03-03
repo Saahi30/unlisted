@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/groq": "^3.0.26",
     "@ai-sdk/react": "^3.0.107",
+    "@clerk/nextjs": "^6.39.0",
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/ssr": "^0.8.0",

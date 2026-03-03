@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LineChart, Menu } from 'lucide-react';
+import {
+    SignInButton,
+    SignUpButton,
+    SignedIn,
+    SignedOut,
+    UserButton,
+} from "@clerk/nextjs";
 
 export function Navbar() {
     return (
@@ -23,8 +30,17 @@ export function Navbar() {
 
                 <div className="flex items-center gap-4">
                     <div className="hidden md:flex gap-2">
-                        <Button variant="ghost">Log in</Button>
-                        <Button>Sign Up</Button>
+                        <SignedOut>
+                            <SignInButton>
+                                <Button variant="ghost">Log in</Button>
+                            </SignInButton>
+                            <SignUpButton>
+                                <Button>Sign Up</Button>
+                            </SignUpButton>
+                        </SignedOut>
+                        <SignedIn>
+                            <UserButton />
+                        </SignedIn>
                     </div>
                     <Button variant="ghost" size="icon" className="md:hidden">
                         <Menu className="h-5 w-5" />
