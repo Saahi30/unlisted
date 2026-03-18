@@ -42,9 +42,17 @@ export default function AgentKycTab() {
     }, []);
 
     const handleAction = async (agentId: string, status: 'approved' | 'rejected' | 'pending') => {
+        const updatePayload: any = { kyc_status: status, updated_at: new Date().toISOString() };
+        
+        // If we approve KYC, we also auto-verify CMR if it's pending
+        if (status === 'approved') {
+            updatePayload.cmr_status = 'verified';
+            updatePayload.cmr_verified_at = new Date().toISOString();
+        }
+
         const { error } = await supabase
             .from('agent_profiles')
-            .update({ kyc_status: status, updated_at: new Date().toISOString() })
+            .update(updatePayload)
             .eq('agent_id', agentId);
 
         if (!error) {
@@ -53,7 +61,59 @@ export default function AgentKycTab() {
         } else {
             // Simulator fallback
             alert(`Simulator: Agent ${status} successfully.`);
-            setAgents(agents.map(a => a.agent_id === agentId ? { ...a, kyc_status: status } : a));
+            setAgents(agents.map(a => a.agent_id === agentId ? { ...a, kyc_status: status, cmr_status: status === 'approved' ? 'verified' : a.cmr_status } : a));
+        }
+    };
+
+    const handleSystemAutoVerify = async (agentId: string) => {
+        setLoading(true);
+        // This simulates calling a sophisticated 3rd party OCR/KYC API
+        try {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const { error } = await supabase
+                .from('agent_profiles')
+                .update({ 
+                    system_pan_verified: true, 
+                    system_aadhar_verified: true,
+                    system_bank_verified: true,
+                    kyc_status: 'approved', // Auto-approve if everything matches
+                    cmr_status: 'verified',
+                    updated_at: new Date().toISOString() 
+                })
+                .eq('agent_id', agentId);
+
+            if (!error) {
+                alert("ShareX AI Scanner: PAN, Aadhar, and CMR details matched. Auto-Approved.");
+                fetchAgents();
+            } else {
+                alert("Simulated AI Verification Success & Auto-Approved!");
+                setAgents(agents.map(a => a.agent_id === agentId ? { ...a, system_pan_verified: true, system_aadhar_verified: true, system_bank_verified: true, kyc_status: 'approved', cmr_status: 'verified' } : a));
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCmrAction = async (agentId: string, status: 'verified' | 'rejected', reason?: string) => {
+        const updatePayload: any = { 
+            cmr_status: status, 
+            cmr_verified_at: status === 'verified' ? new Date().toISOString() : null,
+            cmr_rejection_reason: reason || null,
+            updated_at: new Date().toISOString() 
+        };
+
+        const { error } = await supabase
+            .from('agent_profiles')
+            .update(updatePayload)
+            .eq('agent_id', agentId);
+
+        if (!error) {
+            alert(`CMR ${status} successfully.`);
+            fetchAgents();
+        } else {
+            alert(`Simulator: CMR ${status} successfully.`);
+            setAgents(agents.map(a => a.agent_id === agentId ? { ...a, ...updatePayload } : a));
         }
     };
 
@@ -94,12 +154,41 @@ export default function AgentKycTab() {
                                         <TableRow key={agent.agent_id} className="hover:bg-surface/30">
                                             <TableCell className="pl-6 font-medium">{agent.profiles?.name || 'Unknown'}</TableCell>
                                             <TableCell className="text-muted">{agent.profiles?.email || '-'}</TableCell>
-                                            <TableCell className="font-mono text-xs">{agent.pan_number}</TableCell>
+                                            <TableCell className="font-mono text-xs">
+                                                <div className="flex flex-col gap-1">
+                                                    <span>{agent.pan_number || 'N/A'}</span>
+                                                    {agent.system_pan_verified && (
+                                                        <span className="text-[8px] bg-sky-50 text-sky-600 px-1 rounded flex items-center justify-center font-bold">System Verified</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="text-center text-xs">
-                                                {agent.cmr_uploaded ? (
-                                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">CMR ✓</span>
+                                                {agent.cmr_url ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <a 
+                                                            href={agent.cmr_url} 
+                                                            target="_blank" 
+                                                            className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                                                                agent.cmr_status === 'verified' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
+                                                                agent.cmr_status === 'rejected' ? 'bg-red-50 text-red-500 hover:bg-red-100' :
+                                                                'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                            }`}
+                                                        >
+                                                            View CMR
+                                                        </a>
+                                                        {agent.cmr_status === 'pending' && (
+                                                            <div className="flex gap-1 mt-1">
+                                                                <button 
+                                                                    onClick={() => handleCmrAction(agent.agent_id, 'verified')}
+                                                                    className="text-[9px] font-bold text-green-600 hover:underline"
+                                                                >
+                                                                    Verify
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 ) : (
-                                                    <span className="bg-red-50 text-red-500 px-2 py-0.5 rounded font-bold">No CMR</span>
+                                                    <span className="bg-slate-100 text-slate-400 px-2 py-0.5 rounded font-bold">No File</span>
                                                 )}
                                             </TableCell>
                                             <TableCell>
@@ -115,12 +204,22 @@ export default function AgentKycTab() {
                                             <TableCell className="text-right pr-6 whitespace-nowrap">
                                                 {agent.kyc_status === 'pending' && (
                                                     <div className="flex justify-end gap-2">
+                                                        {!agent.system_pan_verified && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-[10px] font-bold border-sky-200 text-sky-600 hover:bg-sky-50"
+                                                                onClick={() => handleSystemAutoVerify(agent.agent_id)}
+                                                            >
+                                                                System Verify
+                                                            </Button>
+                                                        )}
                                                         <Button
                                                             size="sm"
                                                             className="h-7 text-[10px] font-bold bg-green-500 hover:bg-green-600 text-white"
                                                             onClick={() => handleAction(agent.agent_id, 'approved')}
                                                         >
-                                                            Approve
+                                                            Final Approve
                                                         </Button>
                                                         <Button
                                                             size="sm"

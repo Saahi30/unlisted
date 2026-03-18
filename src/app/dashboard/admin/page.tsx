@@ -27,14 +27,21 @@ export default function AdminDashboardPage() {
 }
 
 function AdminDashboardContent() {
-    const { orders, updateOrderStatus, companies, addCompany, updateCompany, removeCompany, users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote, blogs, addBlog, updateBlog, removeBlog } = useAppStore();
+    const { 
+        orders, updateOrderStatus, 
+        companies, addCompany, updateCompany, removeCompany, 
+        users, teams, addUser, addTeam, updateTeam, removeTeam, addTeamNote, 
+        blogs, addBlog, updateBlog, removeBlog,
+        dematRequests, updateDematStatus,
+        homePageData, updateHomePageData
+    } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'blogs' || tab === 'settings' || tab === 'agents') {
+        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'blogs' || tab === 'settings' || tab === 'agents' || tab === 'demat') {
             setActiveTab(tab as any);
         }
     }, [searchParams]);
@@ -101,7 +108,10 @@ function AdminDashboardContent() {
             status: 'series_a',
             currentAskPrice: 0,
             description: '',
-            aiContext: ''
+            aiContext: '',
+            isFeatured: false,
+            category: '',
+            minInvest: '₹50,000'
         });
     };
 
@@ -118,7 +128,14 @@ function AdminDashboardContent() {
                 currentAskPrice: formValues.currentAskPrice || 0,
                 currentBidPrice: (formValues.currentAskPrice || 0) * 0.95,
                 description: formValues.description || '',
-                aiContext: formValues.aiContext || ''
+                aiContext: formValues.aiContext || '',
+                isFeatured: formValues.isFeatured || false,
+                category: formValues.category || '',
+                change: formValues.change || '+0%',
+                positive: formValues.positive ?? true,
+                minInvest: formValues.minInvest || '₹50,000',
+                img: formValues.img,
+                imgAlt: formValues.imgAlt
             };
             addCompany(newCompany);
         } else {
@@ -264,7 +281,7 @@ function AdminDashboardContent() {
                             activeTab === 'companies' ? 'Company Listings' :
                                 activeTab === 'users' ? 'User Directory' :
                                     activeTab === 'teams' ? 'Team Management' :
-                                        activeTab === 'blogs' ? 'Blog Posts' :
+                                    activeTab === 'blogs' ? 'Blog Posts' :
                                             activeTab === 'agents' ? 'Agent Onboarding' : 'Portal Settings'}
                     </h1>
                     <p className="text-muted mt-1">
@@ -272,8 +289,8 @@ function AdminDashboardContent() {
                             activeTab === 'companies' ? 'Add, edit or remove companies from the marketplace.' :
                                 activeTab === 'users' ? 'Manage platform access and user roles.' :
                                     activeTab === 'teams' ? 'Create teams and assign Relationship Managers.' :
-                                        activeTab === 'blogs' ? 'Create, edit and publish articles for customers.' :
-                                            activeTab === 'agents' ? 'Review and manage Partner Agent KYC submissions.' : 'Configure global platform parameters.'}
+                                    activeTab === 'blogs' ? 'Create, edit and publish articles for customers.' :
+                                            activeTab === 'agents' ? 'Review and manage Partner Agent KYC submissions.' : 'Configure global parameters and Home Page CMS.'}
                     </p>
                 </div>
                 {(activeTab === 'overview' || activeTab === 'companies') && (
@@ -304,7 +321,7 @@ function AdminDashboardContent() {
 
             {activeTab === 'overview' && (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-10">
                         <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=users')}>
                             <CardContent className="p-6">
                                 <div className="flex justify-between items-start mb-4">
@@ -369,6 +386,18 @@ function AdminDashboardContent() {
                                 <div className="text-sm font-medium text-muted mb-1">Active Listings</div>
                                 <div className="text-2xl font-bold text-foreground">{companies.length}</div>
                                 <p className="text-xs text-muted mt-2">Companies available</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border shadow-sm group cursor-pointer hover:border-primary/30 transition-all" onClick={() => router.push('?tab=settings')}>
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <Icon name="SparklesIcon" size={20} />
+                                    </div>
+                                </div>
+                                <div className="text-sm font-medium text-muted mb-1">Home Page CMS</div>
+                                <div className="text-2xl font-bold text-foreground">Edit</div>
+                                <p className="text-xs text-muted mt-2">Hero & Stats</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -444,6 +473,7 @@ function AdminDashboardContent() {
                                         <TableHead className="text-muted font-semibold pl-6">Company</TableHead>
                                         <TableHead className="text-muted font-semibold">Sector</TableHead>
                                         <TableHead className="text-muted font-semibold">Status</TableHead>
+                                        <TableHead className="text-muted font-semibold">Featured</TableHead>
                                         <TableHead className="text-muted font-semibold">Ask Price</TableHead>
                                         <TableHead className="text-right text-muted font-semibold pr-6">Actions</TableHead>
                                     </TableRow>
@@ -457,6 +487,15 @@ function AdminDashboardContent() {
                                                 <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold bg-primary/5 text-primary border border-primary/10 tracking-wide uppercase">
                                                     {company.status.replace('_', ' ')}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {company.isFeatured ? (
+                                                    <span className="flex items-center text-amber-500 gap-1 text-[10px] font-bold uppercase">
+                                                        <Icon name="StarIcon" size={12} variant="solid" /> Yes
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted text-[10px] font-bold uppercase">No</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="font-semibold">₹{company.currentAskPrice.toLocaleString()}</TableCell>
                                             <TableCell className="text-right pr-6 whitespace-nowrap">
@@ -571,6 +610,67 @@ function AdminDashboardContent() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+            {activeTab === 'demat' && (
+                <Card className="border-border shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
+                        <div>
+                            <CardTitle className="font-display font-medium text-lg">Physical Share Conversion</CardTitle>
+                            <CardDescription className="text-muted">Process and track dematerialization requests from physical certificates.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-surface/50">
+                                        <TableHead className="pl-6 font-semibold">Client ID</TableHead>
+                                        <TableHead className="font-semibold">Company</TableHead>
+                                        <TableHead className="font-semibold text-right">Quantity</TableHead>
+                                        <TableHead className="font-semibold">Folio</TableHead>
+                                        <TableHead className="font-semibold">Status</TableHead>
+                                        <TableHead className="text-right pr-6 font-semibold">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {dematRequests.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center p-8 text-muted italic">No conversion requests found.</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        dematRequests.map(req => (
+                                            <TableRow key={req.id}>
+                                                <TableCell className="pl-6 font-mono text-xs">{req.userId}</TableCell>
+                                                <TableCell className="font-medium">{req.companyName}</TableCell>
+                                                <TableCell className="text-right">{req.quantity}</TableCell>
+                                                <TableCell className="font-mono text-xs">{req.folioNumber}</TableCell>
+                                                <TableCell>
+                                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md ${
+                                                        req.status === 'completed' ? 'bg-green-50 text-green-600' :
+                                                        req.status === 'under_process' ? 'bg-blue-50 text-blue-600' :
+                                                        'bg-amber-50 text-amber-600'
+                                                    }`}>
+                                                        {req.status.replace('_', ' ')}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-6">
+                                                   <div className="flex justify-end gap-2">
+                                                        {req.status === 'initiated' && (
+                                                            <Button size="sm" className="h-7 text-[10px] font-bold" onClick={() => updateDematStatus(req.id, 'under_process')}>Start Processing</Button>
+                                                        )}
+                                                        {req.status === 'under_process' && (
+                                                            <Button size="sm" className="h-7 text-[10px] font-bold bg-green-600 hover:bg-green-700 text-white" onClick={() => updateDematStatus(req.id, 'completed')}>Complete</Button>
+                                                        )}
+                                                   </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
@@ -744,6 +844,109 @@ function AdminDashboardContent() {
                             </CardContent>
                         </Card>
                     </div>
+                    <div className="pt-8 border-t border-border mt-8">
+                        <div className="flex items-center gap-2 mb-6 text-primary">
+                            <Icon name="SparklesIcon" size={24} />
+                            <h3 className="font-display text-xl font-medium">Home Page CMS</h3>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Hero Section Config */}
+                            <Card className="border-border shadow-sm overflow-hidden">
+                                <CardHeader className="bg-white border-b border-border/50">
+                                    <CardTitle className="font-display font-medium text-lg flex items-center gap-2">
+                                        <Icon name="SparklesIcon" size={20} className="text-primary" /> Hero Management
+                                    </CardTitle>
+                                    <CardDescription>Update the primary headline and visual content for the home page.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-6 space-y-4 bg-white">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Headline Text</label>
+                                        <Input 
+                                            value={homePageData.hero.title} 
+                                            onChange={(e) => updateHomePageData({...homePageData, hero: {...homePageData.hero, title: e.target.value}})}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Highlight Word</label>
+                                        <Input 
+                                            value={homePageData.hero.highlight} 
+                                            onChange={(e) => updateHomePageData({...homePageData, hero: {...homePageData.hero, highlight: e.target.value}})}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Sub-headline Description</label>
+                                        <textarea 
+                                            className="w-full h-24 p-3 text-sm border border-border rounded-lg bg-surface/10 focus:ring-1 focus:ring-primary outline-none resize-none"
+                                            value={homePageData.hero.description}
+                                            onChange={(e) => updateHomePageData({...homePageData, hero: {...homePageData.hero, description: e.target.value}})}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Offer Title</label>
+                                            <Input 
+                                                value={homePageData.hero.offerPrice} 
+                                                onChange={(e) => updateHomePageData({...homePageData, hero: {...homePageData.hero, offerPrice: e.target.value}})}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Offer Change Badge</label>
+                                            <Input 
+                                                value={homePageData.hero.offerChange} 
+                                                onChange={(e) => updateHomePageData({...homePageData, hero: {...homePageData.hero, offerChange: e.target.value}})}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Hero Backdrop URL</label>
+                                        <Input 
+                                            value={homePageData.hero.img} 
+                                            onChange={(e) => updateHomePageData({...homePageData, hero: {...homePageData.hero, img: e.target.value}})}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Platform Statistics */}
+                            <Card className="border-border shadow-sm flex flex-col">
+                                <CardHeader className="bg-white border-b border-border/50">
+                                    <CardTitle className="font-display font-medium text-lg flex items-center gap-2">
+                                        <Icon name="ArrowTrendingUpIcon" size={20} className="text-primary" /> Authority Stats
+                                    </CardTitle>
+                                    <CardDescription>Manage the credibility numbers shown to new visitors.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-6 space-y-6 flex-1 bg-white">
+                                    <div className="p-4 bg-surface/30 rounded-xl border border-border/50">
+                                        <label className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-3">Average Returns (%)</label>
+                                        <Input 
+                                            className="text-2xl font-bold h-14"
+                                            value={homePageData.stats.avgReturns} 
+                                            onChange={(e) => updateHomePageData({...homePageData, stats: {...homePageData.stats, avgReturns: e.target.value}})}
+                                        />
+                                        <p className="text-[10px] text-muted mt-2 uppercase font-medium">Displayed in: How it Works & Stats Section</p>
+                                    </div>
+
+                                    <div className="p-4 bg-surface/30 rounded-xl border border-border/50">
+                                        <label className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-3">Total Orders (Value)</label>
+                                        <Input 
+                                            className="text-2xl font-bold h-14"
+                                            value={homePageData.stats.totalOrders} 
+                                            onChange={(e) => updateHomePageData({...homePageData, stats: {...homePageData.stats, totalOrders: e.target.value}})}
+                                        />
+                                    </div>
+
+                                    <div className="p-4 bg-surface/30 rounded-xl border border-border/50">
+                                        <label className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-3">Registered Investors</label>
+                                        <Input 
+                                            className="text-2xl font-bold h-14"
+                                            value={homePageData.stats.users} 
+                                            onChange={(e) => updateHomePageData({...homePageData, stats: {...homePageData.stats, users: e.target.value}})}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
                     <AgentSettingsConfig />
                 </div>
             )}
@@ -754,6 +957,8 @@ function AdminDashboardContent() {
                     <AgentPayoutsTab />
                 </div>
             )}
+
+
 
             {/* Delivery Details Modal */}
             {deliveryOrderId && (
@@ -937,6 +1142,90 @@ function AdminDashboardContent() {
                                     className="w-full h-24 p-2.5 text-sm border border-amber-200 rounded-lg bg-amber-50/30 focus-visible:ring-1 focus-visible:ring-amber-400 outline-none resize-none placeholder:text-amber-600/50"
                                 />
                                 <p className="text-[10px] text-muted mt-1">This information is provided to the AI to answer user queries about this company.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-border flex flex-col gap-4">
+                                <div className="flex items-center gap-3">
+                                    <input 
+                                        type="checkbox" 
+                                        id="is-featured"
+                                        className="h-5 w-5 rounded border-border text-primary focus:ring-primary"
+                                        checked={formValues.isFeatured || false}
+                                        onChange={e => setFormValues({...formValues, isFeatured: e.target.checked})}
+                                    />
+                                    <label htmlFor="is-featured" className="text-sm font-bold text-foreground flex items-center gap-2">
+                                        <Icon name="StarIcon" size={16} className="text-amber-500" variant="solid" /> Featured on Homepage Slider
+                                    </label>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Company Category (Label)</label>
+                                        <input
+                                            type="text"
+                                            value={formValues.category || ''}
+                                            onChange={e => setFormValues({ ...formValues, category: e.target.value })}
+                                            className="w-full p-2.5 text-xs border border-border rounded-lg bg-surface/30"
+                                            placeholder="e.g. Fintech · Pre-IPO"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Minimum Investment</label>
+                                        <input
+                                            type="text"
+                                            value={formValues.minInvest || ''}
+                                            onChange={e => setFormValues({ ...formValues, minInvest: e.target.value })}
+                                            className="w-full p-2.5 text-xs border border-border rounded-lg bg-surface/30"
+                                            placeholder="₹50,000"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Price Change Badge</label>
+                                        <input
+                                            type="text"
+                                            value={formValues.change || ''}
+                                            onChange={e => setFormValues({ ...formValues, change: e.target.value })}
+                                            className="w-full p-2.5 text-xs border border-border rounded-lg bg-surface/30"
+                                            placeholder="+12.4%"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 pt-4">
+                                        <input 
+                                            type="checkbox" 
+                                            id="is-positive"
+                                            className="h-4 w-4 rounded border-border text-green-600 focus:ring-green-500"
+                                            checked={formValues.positive ?? true}
+                                            onChange={e => setFormValues({...formValues, positive: e.target.checked})}
+                                        />
+                                        <label htmlFor="is-positive" className="text-xs font-semibold text-foreground">Is Positive Change?</label>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Logo URL (Optional)</label>
+                                        <input
+                                            type="text"
+                                            value={formValues.img || ''}
+                                            onChange={e => setFormValues({ ...formValues, img: e.target.value })}
+                                            className="w-full p-2.5 text-xs border border-border rounded-lg bg-surface/30"
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1">Brand Color / Theme</label>
+                                        <input
+                                            type="text"
+                                            value={formValues.imgAlt || ''}
+                                            onChange={e => setFormValues({ ...formValues, imgAlt: e.target.value })}
+                                            className="w-full p-2.5 text-xs border border-border rounded-lg bg-surface/30"
+                                            placeholder="Light Blue"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

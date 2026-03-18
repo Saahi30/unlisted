@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/AppIcon';
 import { useAppStore } from '@/lib/store';
-import { MOCK_USERS } from '@/lib/mock-data';
+
 
 interface RMPerformance {
     id: string;
@@ -33,7 +33,7 @@ export default function ManagerDashboardPage() {
 }
 
 function ManagerDashboardContent() {
-    const { orders, leads, updateOrderStatus, dematRequests, updateDematStatus, rmTargets, updateRmTarget } = useAppStore();
+    const { orders, leads, updateOrderStatus, dematRequests, updateDematStatus, rmTargets, updateRmTarget, users } = useAppStore();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'transactions' | 'demat'>('overview');
 
@@ -45,11 +45,11 @@ function ManagerDashboardContent() {
     }, [searchParams]);
 
     const rms = React.useMemo<RMPerformance[]>(() => {
-        const salesStaff = MOCK_USERS.filter(u => u.role === 'rm');
+        const salesStaff = users.filter(u => u.role === 'rm');
 
         return salesStaff.map(staff => {
             // Find all customers assigned to this RM
-            const assignedCustomers = MOCK_USERS.filter(u => u.assignedRmId === staff.id).map(u => u.id);
+            const assignedCustomers = users.filter(u => u.assignedRmId === staff.id).map(u => u.id);
 
             // Find all orders for these customers
             const rmOrders = orders.filter(o => assignedCustomers.includes(o.userId));
@@ -114,7 +114,7 @@ function ManagerDashboardContent() {
     };
 
     const getUserName = (userId: string) => {
-        const u = MOCK_USERS.find(user => user.id === userId);
+        const u = users.find(user => user.id === userId);
         if (u) return u.name;
         const lead = leads.find(l => l.id === userId);
         return lead ? lead.name : userId;

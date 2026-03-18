@@ -231,6 +231,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 {/* Page Content scrollable area */}
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-surface pb-12">
                     {children}
+
+                    <div className="max-w-screen-xl mx-auto px-4 md:px-8 mt-12 mb-8">
+                        <div className="pt-8 border-t border-border/60 text-[10px] md:text-xs text-muted/60 leading-relaxed text-center md:text-left">
+                            <p>
+                                <strong>Disclaimer:</strong> Unlisted shares are not traded on any stock exchange and carry higher risk. 
+                                Prices are indicative and may vary. Please conduct your own research or consult a financial advisor before investing.
+                            </p>
+                        </div>
+                    </div>
                 </main>
             </div>
 

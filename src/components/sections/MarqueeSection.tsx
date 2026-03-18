@@ -1,13 +1,10 @@
 import React from 'react';
+import { MOCK_COMPANIES } from '@/lib/mock-data';
 
-const companies = [
-    'Swiggy', 'NSDL', 'HDB Financial', 'Boat Lifestyle', 'Ola Electric',
-    'PhonePe', 'Groww', 'Zepto', 'Meesho', 'Pine Labs',
-    'IndiaMart', 'Nykaa Fashion', 'BYJU\'S', 'Razorpay', 'Lenskart',
-];
+const companyNames = MOCK_COMPANIES.map(c => c.name.split(' ')[0]); // Get first name for marquee
 
 export default function MarqueeSection() {
-    const doubled = [...companies, ...companies];
+    const doubled = [...companyNames, ...companyNames];
     return (
         <div className="w-full overflow-hidden border-y border-border bg-white py-4">
             <div className="flex whitespace-nowrap animate-marquee">

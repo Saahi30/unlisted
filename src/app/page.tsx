@@ -6,6 +6,7 @@ import MarqueeSection from '@/components/sections/MarqueeSection';
 import HowItWorksSection from '@/components/sections/HowItWorksSection';
 import CompaniesSection from '@/components/sections/CompaniesSection';
 import TrustSection from '@/components/sections/TrustSection';
+import DematerializationSection from '@/components/sections/DematerializationSection';
 import CtaSection from '@/components/sections/CtaSection';
 
 export default function Home() {
@@ -17,6 +18,7 @@ export default function Home() {
         <MarqueeSection />
         <HowItWorksSection />
         <CompaniesSection />
+        <DematerializationSection />
         <TrustSection />
         <CtaSection />
       </main>

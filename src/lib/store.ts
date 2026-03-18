@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, MOCK_USERS, MOCK_BLOGS } from './mock-data';
+import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, MOCK_USERS, MOCK_BLOGS, MOCK_HISTORICAL_PRICES } from './mock-data';
 import { UserRole } from './auth-context';
 import { supabase } from './supabase';
 
@@ -91,6 +91,7 @@ interface AppState {
     teams: Team[];
     blogs: Blog[];
     historicalPrices: HistoricalPrice[];
+    homePageData: any;
     addOrder: (order: ExtendedOrder) => void;
     updateOrderStatus: (id: string, status: OrderStatus, deliveryDetails?: any, txProofUrl?: string) => void;
     addOrderNote: (id: string, note: string) => void;
@@ -114,11 +115,14 @@ interface AppState {
     incrementBlogViews: (id: string) => void;
     addHistoricalPrice: (companyId: string, date: string, value: number) => Promise<void>;
     removeHistoricalPrice: (id: string) => Promise<void>;
+    updateHomePageData: (data: any) => void;
     rmTargets: Record<string, number>;
     fetchInitialData: () => Promise<void>;
 }
 
-// Map existing mock orders to new structure
+import { HOME_PAGE_DATA } from './mock-data';
+
+// Fallback mock orders (to avoid empty screen if DB empty)
 const initialOrders: ExtendedOrder[] = MOCK_ORDERS.map(o => {
     const company = MOCK_COMPANIES.find(c => c.id === o.companyId);
     return {
@@ -141,13 +145,33 @@ export const useAppStore = create<AppState>()(
             teams: [],
             dematRequests: [],
             blogs: [],
-            historicalPrices: [],
+            historicalPrices: [...MOCK_HISTORICAL_PRICES],
+            homePageData: HOME_PAGE_DATA,
             rmTargets: {
                 'sls_1': 6000000,
                 'sls_2': 8000000
             },
-            addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
-            updateOrderStatus: (id, status, deliveryDetails, txProofUrl) => {
+            addOrder: async (order) => {
+                const id = order.id.startsWith('ord_') ? uuidv4() : order.id;
+                const newOrder = { ...order, id };
+                set((state) => ({ orders: [newOrder, ...state.orders] }));
+
+                await supabase.from('orders').insert([{
+                    id,
+                    company_id: order.companyId,
+                    user_id: order.userId,
+                    quantity: order.quantity,
+                    price: order.price,
+                    total_amount: order.totalAmount,
+                    status: order.status,
+                    type: order.type,
+                    payment_method: order.paymentMethod,
+                    tx_proof_url: order.txProofUrl,
+                    delivery_details: order.deliveryDetails || {},
+                    notes: order.notes || []
+                }]);
+            },
+            updateOrderStatus: async (id, status, deliveryDetails, txProofUrl) => {
                 set((state) => ({
                     orders: state.orders.map(o => {
                         if (o.id === id) {
@@ -162,24 +186,83 @@ export const useAppStore = create<AppState>()(
                     })
                 }));
 
+                await supabase.from('orders').update({
+                    status,
+                    ...(deliveryDetails ? { delivery_details: deliveryDetails } : {}),
+                    ...(txProofUrl ? { tx_proof_url: txProofUrl } : {})
+                }).eq('id', id);
+
                 // Auto move mail_sent to in_holding after 5 minutes
                 if (status === 'mail_sent') {
-                    setTimeout(() => {
-                        set((state) => ({
-                            orders: state.orders.map(o =>
-                                (o.id === id && o.status === 'mail_sent') ? { ...o, status: 'in_holding' } : o
-                            )
-                        }));
+                    setTimeout(async () => {
+                        const currentOrder = get().orders.find(o => o.id === id);
+                        if (currentOrder && currentOrder.status === 'mail_sent') {
+                            set((state) => ({
+                                orders: state.orders.map(o =>
+                                    (o.id === id && o.status === 'mail_sent') ? { ...o, status: 'in_holding' } : o
+                                )
+                            }));
+                            await supabase.from('orders').update({ status: 'in_holding' }).eq('id', id);
+                        }
                     }, 5 * 60 * 1000);
                 }
             },
-            addOrderNote: (id, note) => set((state) => ({
-                orders: state.orders.map(o => o.id === id ? { ...o, notes: [...o.notes, note] } : o)
-            })),
-            addLead: (lead) => set((state) => ({ leads: [lead, ...state.leads] })),
-            addLeadNote: (id, note) => set((state) => ({
-                leads: state.leads.map(l => l.id === id ? { ...l, notes: [...l.notes, note] } : l)
-            })),
+            addOrderNote: async (id, note) => {
+                set((state) => ({
+                    orders: state.orders.map(o => o.id === id ? { ...o, notes: [...o.notes, note] } : o)
+                }));
+                const currentOrder = get().orders.find(o => o.id === id);
+                if (currentOrder) {
+                    await supabase.from('orders').update({ notes: currentOrder.notes }).eq('id', id);
+                }
+            },
+            addLead: async (lead) => {
+                const id = lead.id.startsWith('lead_') ? uuidv4() : lead.id;
+                const newLead = { ...lead, id };
+                set((state) => ({ leads: [newLead, ...state.leads] }));
+
+                await supabase.from('leads').insert([{
+                    id,
+                    name: lead.name,
+                    email: lead.email,
+                    phone: lead.phone,
+                    company_id: lead.companyId,
+                    quantity: lead.quantity,
+                    price: lead.price,
+                    status: lead.status,
+                    assigned_rm_id: lead.assignedRmId,
+                    kyc_status: lead.kycStatus || 'pending',
+                    onboarding_token: lead.onboardingToken,
+                    notes: lead.notes || []
+                }]);
+            },
+            addLeadNote: async (id, note) => {
+                set((state) => ({
+                    leads: state.leads.map(l => l.id === id ? { ...l, notes: [...l.notes, note] } : l)
+                }));
+                const currentLead = get().leads.find(l => l.id === id);
+                if (currentLead) {
+                    await supabase.from('leads').update({ notes: currentLead.notes }).eq('id', id);
+                }
+            },
+            updateLead: async (lead) => {
+                set((state) => ({
+                    leads: state.leads.map(l => l.id === lead.id ? lead : l)
+                }));
+                await supabase.from('leads').update({
+                    name: lead.name,
+                    email: lead.email,
+                    phone: lead.phone,
+                    company_id: lead.companyId,
+                    quantity: lead.quantity,
+                    price: lead.price,
+                    status: lead.status,
+                    assigned_rm_id: lead.assignedRmId,
+                    kyc_status: lead.kycStatus || 'pending',
+                    onboarding_token: lead.onboardingToken,
+                    notes: lead.notes || []
+                }).eq('id', lead.id);
+            },
             addCompany: async (company) => {
                 const id = company.id.startsWith('comp_') ? uuidv4() : company.id;
                 const newCompany = { ...company, id };
@@ -194,7 +277,14 @@ export const useAppStore = create<AppState>()(
                     current_ask_price: company.currentAskPrice,
                     current_bid_price: company.currentBidPrice,
                     description: company.description,
-                    ai_context: company.aiContext || ''
+                    ai_context: company.aiContext || '',
+                    category: company.category,
+                    change: company.change,
+                    positive: company.positive,
+                    min_invest: company.minInvest,
+                    img: company.img,
+                    img_alt: company.imgAlt,
+                    is_featured: company.isFeatured
                 }]);
             },
             updateCompany: async (company) => {
@@ -210,7 +300,14 @@ export const useAppStore = create<AppState>()(
                     current_ask_price: company.currentAskPrice,
                     current_bid_price: company.currentBidPrice,
                     description: company.description,
-                    ai_context: company.aiContext || ''
+                    ai_context: company.aiContext || '',
+                    category: company.category,
+                    change: company.change,
+                    positive: company.positive,
+                    min_invest: company.minInvest,
+                    img: company.img,
+                    img_alt: company.imgAlt,
+                    is_featured: company.isFeatured
                 }).eq('id', company.id);
             },
             removeCompany: async (id) => {
@@ -219,15 +316,28 @@ export const useAppStore = create<AppState>()(
                 }));
                 await supabase.from('companies').delete().eq('id', id);
             },
-            addDematRequest: (request) => set((state) => ({
-                dematRequests: [request, ...state.dematRequests]
-            })),
-            updateDematStatus: (id, status) => set((state) => ({
-                dematRequests: state.dematRequests.map(r => r.id === id ? { ...r, status } : r)
-            })),
-            updateLead: (lead) => set((state) => ({
-                leads: state.leads.map(l => l.id === lead.id ? lead : l)
-            })),
+            addDematRequest: async (request) => {
+                const id = request.id.startsWith('demat_') ? uuidv4() : request.id;
+                const newRequest = { ...request, id };
+                set((state) => ({ dematRequests: [newRequest, ...state.dematRequests] }));
+
+                await supabase.from('demat_requests').insert([{
+                    id,
+                    user_id: request.userId,
+                    company_name: request.companyName,
+                    quantity: request.quantity,
+                    certificate_number: request.certificateNumbers,
+                    folio_number: request.folioNumber,
+                    status: request.status,
+                    notes: request.notes || []
+                }]);
+            },
+            updateDematStatus: async (id, status) => {
+                set((state) => ({
+                    dematRequests: state.dematRequests.map(r => r.id === id ? { ...r, status } : r)
+                }));
+                await supabase.from('demat_requests').update({ status }).eq('id', id);
+            },
             updateRmTarget: (rmId, target) => set((state) => ({
                 rmTargets: { ...state.rmTargets, [rmId]: target }
             })),
@@ -361,6 +471,7 @@ export const useAppStore = create<AppState>()(
                 }));
                 await supabase.from('company_historical_prices').delete().eq('id', id);
             },
+            updateHomePageData: (data) => set({ homePageData: data }),
             fetchInitialData: async () => {
                 try {
                     // Fetch Profiles (Users)
@@ -431,9 +542,55 @@ export const useAppStore = create<AppState>()(
                         // Fallback to MOCK_BLOGS if DB is empty
                         set({ blogs: MOCK_BLOGS as any[] });
                     }
+                    // Fetch Orders
+                    const { data: ordersData } = await supabase.from('orders').select('*, companies(name)');
+                    if (ordersData && ordersData.length > 0) {
+                        const parsedOrders = ordersData.map(o => ({
+                            id: o.id,
+                            companyId: o.company_id,
+                            userId: o.user_id,
+                            quantity: o.quantity,
+                            price: o.price,
+                            totalAmount: o.total_amount,
+                            status: o.status,
+                            createdAt: o.created_at,
+                            type: o.type,
+                            paymentMethod: o.payment_method,
+                            txProofUrl: o.tx_proof_url,
+                            deliveryDetails: o.delivery_details,
+                            companyName: o.companies?.name || 'Unknown',
+                            notes: o.notes || []
+                        }));
+                        set({ orders: parsedOrders as ExtendedOrder[] });
+                    }
+
+                    // Fetch Leads
+                    const { data: leadsData } = await supabase.from('leads').select('*, companies(name)');
+                    if (leadsData && leadsData.length > 0) {
+                        const parsedLeads = leadsData.map(l => ({
+                            id: l.id,
+                            name: l.name,
+                            email: l.email || '',
+                            phone: l.phone,
+                            companyId: l.company_id,
+                            quantity: l.quantity,
+                            price: l.price,
+                            status: l.status,
+                            assignedRmId: l.assigned_rm_id,
+                            kycStatus: l.kyc_status || 'pending',
+                            onboardingToken: l.onboarding_token,
+                            notes: l.notes || [],
+                            companyName: l.companies?.name || 'Unknown',
+                            createdAt: l.created_at
+                        }));
+                        set({ leads: parsedLeads as Lead[] });
+                    }
+
                     // Fetch Historical Prices
-                    const { data: historicalData } = await supabase.from('company_historical_prices').select('*').order('price_date', { ascending: true });
-                    if (historicalData) {
+                    const { data: historicalData } = await supabase.from('company_historical_prices')
+                        .select('*')
+                        .order('price_date', { ascending: true });
+                    if (historicalData && historicalData.length > 0) {
                         const parsedPrices = historicalData.map(hp => ({
                             id: hp.id,
                             companyId: hp.company_id,
@@ -449,16 +606,16 @@ export const useAppStore = create<AppState>()(
         }),
         {
             name: 'sharesaathi-storage',
+            version: 1, // trigger hydration correctly
             partialize: (state) => ({
                 orders: state.orders,
                 leads: state.leads,
-                companies: state.companies,
                 dematRequests: state.dematRequests,
                 rmTargets: state.rmTargets,
                 users: state.users,
                 teams: state.teams,
                 blogs: state.blogs,
-                historicalPrices: state.historicalPrices
+                homePageData: state.homePageData
             })
         }
     )

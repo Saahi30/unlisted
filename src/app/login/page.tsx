@@ -212,6 +212,15 @@ export default function LoginPage() {
                     </div>
                 </div>
             </main>
+
+            <footer className="p-6 md:p-8 z-10 w-full max-w-screen-xl mx-auto flex flex-col items-center">
+                <div className="pt-8 border-t border-border/40 w-full text-[10px] md:text-xs text-muted/50 leading-relaxed text-center">
+                    <p>
+                        <strong>Disclaimer:</strong> Unlisted shares are not traded on any stock exchange and carry higher risk. 
+                        Prices are indicative and may vary. Please conduct your own research or consult a financial advisor before investing.
+                    </p>
+                </div>
+            </footer>
         </div>
     );
 }

@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
+import { useAppStore } from '@/lib/store';
 
 const steps = [
     {
@@ -17,16 +18,12 @@ const steps = [
         num: '03',
         title: 'Buy & Hold Securely',
         desc: 'Shares are held in your demat account via NSDL/CDSL. Full transparency, no hidden custody fees.'
-    },
-    {
-        num: '04',
-        title: 'Physical to Digital',
-        desc: 'Have old physical share certificates? We help you convert them into digital shares in your demat account seamlessly.'
     }];
 
 
 export default function HowItWorksSection() {
     const sectionRef = useRef<HTMLElement>(null);
+    const { homePageData } = useAppStore();
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -45,6 +42,8 @@ export default function HowItWorksSection() {
         return () => observer?.disconnect();
     }, []);
 
+    if (!homePageData) return null;
+
     return (
         <section
             id="how-it-works"
@@ -57,7 +56,7 @@ export default function HowItWorksSection() {
                 <div className="md:col-span-5 relative reveal-left">
                     <div className="rounded-2xl overflow-hidden aspect-[4/5] relative border border-border">
                         <AppImage
-                            src="https://img.rocket.new/generatedImages/rocket_gen_img_1fb26a215-1772094131155.png"
+                            src="https://images.unsplash.com/photo-1573163231162-717df3f80ce4"
                             alt="Investor reviewing pre-IPO company data on laptop"
                             className="w-full h-full object-cover"
                             fill />
@@ -71,7 +70,7 @@ export default function HowItWorksSection() {
                     {/* Stat card */}
                     <div className="absolute bottom-8 -right-4 md:-right-8 bg-white border border-border rounded-xl p-4 shadow-sm max-w-[160px] reveal delay-300">
                         <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Avg. Returns</p>
-                        <p className="text-2xl font-display font-medium text-foreground">2.8×</p>
+                        <p className="text-2xl font-display font-medium text-foreground">{homePageData.stats.avgReturns}</p>
                         <p className="text-[10px] text-muted">at IPO listing</p>
                     </div>
                 </div>
@@ -81,7 +80,7 @@ export default function HowItWorksSection() {
                     <div className="mb-12 reveal">
                         <span className="text-[10px] uppercase tracking-widest text-accent font-semibold mb-3 block">How It Works</span>
                         <h2 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-tight leading-[1.1]">
-                            Simple as<br /><span className="italic text-muted">four steps.</span>
+                            Simple as<br /><span className="italic text-muted">three steps.</span>
                         </h2>
                     </div>
 
@@ -102,9 +101,11 @@ export default function HowItWorksSection() {
                         )}
                     </div>
 
-                    <div className="mt-10 reveal delay-400">
+
+
+                    <div className="mt-10 reveal delay-500">
                         <a
-                            href="#"
+                            href="/login"
                             className="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-widest text-foreground hover:gap-5 transition-all duration-300 group">
 
                             Start Your KYC Now

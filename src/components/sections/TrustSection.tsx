@@ -77,7 +77,7 @@ export default function TrustSection() {
             <div className="mt-20 pt-12 border-t border-border reveal">
                 <p className="text-[10px] uppercase tracking-widest text-muted text-center mb-8">Trusted & Regulated</p>
                 <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-                    {['SEBI Registered', 'NSDL Partner', 'CDSL Approved', 'ISO 27001 Certified']?.map((badge) => (
+                    {['NSDL Partner', 'CDSL Approved', 'ISO 27001 Certified']?.map((badge) => (
                         <div key={badge} className="flex items-center gap-2 text-xs font-medium text-muted">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent flex-shrink-0">
                                 <polyline points="20 6 9 17 4 12" />

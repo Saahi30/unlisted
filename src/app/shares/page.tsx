@@ -162,6 +162,13 @@ export default function SharesPage() {
                     </Button>
                 </div>
             )}
+            {/* Disclaimer at the bottom */}
+            <div className="mt-16 pt-8 border-t border-slate-100 text-[10px] md:text-xs text-slate-400 leading-relaxed text-center max-w-3xl mx-auto">
+                <p>
+                    <strong>Disclaimer:</strong> Unlisted shares are not traded on any stock exchange and carry higher risk. 
+                    Prices are indicative and may vary. Please conduct your own research or consult a financial advisor before investing.
+                </p>
+            </div>
         </div>
     );
 }

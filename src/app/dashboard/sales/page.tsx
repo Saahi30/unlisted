@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/AppIcon';
-import { useAppStore, OrderStatus, User } from '@/lib/store';
+import { useAppStore, OrderStatus, User, ExtendedOrder } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
 
 export default function SalesDashboardPage() {
     return (
@@ -23,6 +24,7 @@ export default function SalesDashboardPage() {
 
 function SalesDashboardContent() {
     const { orders, leads, updateOrderStatus, addOrderNote, addLeadNote, updateLead, users } = useAppStore();
+    const { user: authUser } = useAuth();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'orders' | 'leads' | 'clients'>('leads');
 
@@ -107,7 +109,12 @@ function SalesDashboardContent() {
         setUploadOrderId(null);
     };
 
-    const filteredOrders = orders.filter(o => {
+    const myOrders = orders.filter(o => {
+        const client = users.find(u => u.id === o.userId);
+        return client?.assignedRmId === authUser?.id || o.userId === authUser?.id;
+    });
+
+    const filteredOrders = myOrders.filter(o => {
         const matchesSearch = getUserName(o.userId).toLowerCase().includes(dealSearch.toLowerCase()) ||
             o.companyName.toLowerCase().includes(dealSearch.toLowerCase()) ||
             o.id.toLowerCase().includes(dealSearch.toLowerCase());
@@ -116,18 +123,18 @@ function SalesDashboardContent() {
     });
 
     const myLeads = leads.filter(l => {
-        const matchesRM = l.assignedRmId === 'sls_1';
+        const matchesRM = l.assignedRmId === authUser?.id;
         const matchesSearch = l.name.toLowerCase().includes(dealSearch.toLowerCase()) ||
             l.email.toLowerCase().includes(dealSearch.toLowerCase()) ||
             l.phone.includes(dealSearch);
         return matchesRM && matchesSearch;
     });
 
-    const requestedCount = orders.filter(o => o.status === 'requested').length;
-    const underProcessCount = orders.filter(o => o.status === 'under_process' || o.status === 'mail_sent').length;
-    const settledCount = orders.filter(o => o.status === 'in_holding').length;
+    const requestedCount = myOrders.filter(o => o.status === 'requested').length;
+    const underProcessCount = myOrders.filter(o => o.status === 'under_process' || o.status === 'mail_sent').length;
+    const settledCount = myOrders.filter(o => o.status === 'in_holding').length;
 
-    const selectedDeal = orders.find(o => o.id === selectedDealId);
+    const selectedDeal = myOrders.find(o => o.id === selectedDealId);
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 relative max-w-6xl">
@@ -357,7 +364,7 @@ function SalesDashboardContent() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {users.filter(u => u.role === 'customer').map(client => {
+                                {users.filter(u => u.role === 'customer' && u.assignedRmId === authUser?.id).map(client => {
                                     const clientOrders = orders.filter(o => o.userId === client.id);
                                     const activeDeals = clientOrders.filter(o => o.status !== 'in_holding').length;
                                     const portfolioValue = clientOrders

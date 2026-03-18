@@ -87,7 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const u = mockUsers[role];
         setUser(u);
         localStorage.setItem('sharesaathi_auth', JSON.stringify(u));
-        router.push(`/dashboard/${role}`);
+        
+        // Map roles to correct dashboard paths
+        let path = role as string;
+        if (role === 'rm') path = 'sales';
+        if (role === 'staffmanager') path = 'manager';
+        
+        router.push(`/dashboard/${path}`);
     };
 
     const logout = async () => {

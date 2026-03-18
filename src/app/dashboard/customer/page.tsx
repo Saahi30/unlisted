@@ -17,8 +17,8 @@ export default function CustomerDashboardPage() {
     if (isLoading || !user) return null;
 
     // Filter orders & demat requests to only show those for the current customer mapping
-    const userOrders = orders.filter(o => o.userId === 'cust_1');
-    const userDematRequests = dematRequests.filter(r => r.userId === 'cust_1');
+    const userOrders = orders.filter(o => o.userId === user.id);
+    const userDematRequests = dematRequests.filter(r => r.userId === user.id);
 
     const activeOrders = userOrders.filter(o => ['requested', 'under_process', 'mail_sent'].includes(o.status));
     const settledOrders = userOrders.filter(o => o.status === 'in_holding');

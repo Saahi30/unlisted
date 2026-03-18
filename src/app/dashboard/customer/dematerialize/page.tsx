@@ -7,13 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/AppIcon';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, DematRequest } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@/utils/supabase/client';
 import { CheckCircle2, MoreVertical, ExternalLink } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function DematerializeFormPage() {
     const router = useRouter();
-    const { addDematRequest, dematRequests } = useAppStore();
+    const { user } = useAuth();
+    const supabase = createClient();
+    const { dematRequests, addDematRequest } = useAppStore();
+    const [fetchedRequests, setFetchedRequests] = useState<any[]>([]); // Keep local for initial fetch if needed, but we'll use store
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -40,28 +45,49 @@ export default function DematerializeFormPage() {
         }
     };
 
-    const handleSubmit = () => {
-        const requestId = 'dmr_' + Math.random().toString(36).substring(7);
-        addDematRequest({
-            id: requestId,
-            userId: 'cust_1',
-            companyName: formData.companyName,
-            folioNumber: formData.folioNumber,
-            certificateNumbers: formData.certificateNumbers,
-            distinctiveFrom: formData.distinctiveFrom,
-            distinctiveTo: formData.distinctiveTo,
+    const fetchRequests = async () => {
+        if (!user) return;
+        const { data } = await supabase
+            .from('demat_requests')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+        if (data) setFetchedRequests(data);
+    };
+
+    React.useEffect(() => {
+        fetchRequests();
+    }, [user]);
+
+    const handleSubmit = async () => {
+        if (!user) return;
+        setIsUploading(true);
+
+        const payload = {
+            user_id: user.id,
+            company_name: formData.companyName,
+            folio_number: formData.folioNumber,
+            certificate_numbers: formData.certificateNumbers,
+            distinctive_from: formData.distinctiveFrom,
+            distinctive_to: formData.distinctiveTo,
             quantity: Number(formData.quantity),
-            fileName: fileName || 'file_uploaded',
-            status: 'initiated',
-            createdAt: new Date().toISOString(),
-            notes: []
-        });
+            file_name: fileName || 'file_uploaded',
+            status: 'initiated'
+        };
 
-        setSuccessMsg('Your dematerialization request has been successfully submitted. Our team will verify the details and contact you shortly.');
+        const { error } = await supabase
+            .from('demat_requests')
+            .insert(payload);
 
-        setTimeout(() => {
-            router.push('/dashboard/customer');
-        }, 3000);
+        if (!error) {
+            setSuccessMsg('Your dematerialization request has been successfully submitted. Our team will verify the details and contact you shortly.');
+            setTimeout(() => {
+                router.push('/dashboard/customer');
+            }, 3000);
+        } else {
+            alert('Failed to submit request: ' + error.message);
+        }
+        setIsUploading(false);
     };
 
     if (successMsg) {
@@ -267,7 +293,7 @@ export default function DematerializeFormPage() {
                             <CardTitle className="text-base font-medium">Active Requests</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
-                            {dematRequests.filter(r => r.userId === 'cust_1' && r.status !== 'completed').length === 0 ? (
+                            {dematRequests.filter(r => r.status !== 'completed').length === 0 ? (
                                 <div className="p-12 text-center text-muted text-sm">No active demat requests.</div>
                             ) : (
                                 <Table>
@@ -281,11 +307,11 @@ export default function DematerializeFormPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {dematRequests.filter(r => r.userId === 'cust_1' && r.status !== 'completed').map(request => (
+                                        {fetchedRequests.filter(r => r.status !== 'completed').map(request => (
                                             <React.Fragment key={request.id}>
                                                 <TableRow className="hover:bg-surface/20 cursor-pointer" onClick={() => setSelectedRequestId(selectedRequestId === request.id ? null : request.id)}>
-                                                    <TableCell className="pl-6 font-medium text-foreground">{request.companyName}</TableCell>
-                                                    <TableCell className="text-muted font-mono text-xs">{request.folioNumber}</TableCell>
+                                                    <TableCell className="pl-6 font-medium text-foreground">{request.company_name}</TableCell>
+                                                    <TableCell className="text-muted font-mono text-xs">{request.folio_number}</TableCell>
                                                     <TableCell>{request.quantity}</TableCell>
                                                     <TableCell>
                                                         <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${request.status === 'initiated' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'
@@ -305,17 +331,17 @@ export default function DematerializeFormPage() {
                                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                                                                 <div>
                                                                     <div className="text-xs text-muted font-semibold uppercase mb-1">Certificates</div>
-                                                                    <div className="text-foreground">{request.certificateNumbers}</div>
+                                                                    <div className="text-foreground">{request.certificate_numbers}</div>
                                                                 </div>
                                                                 <div>
                                                                     <div className="text-xs text-muted font-semibold uppercase mb-1">Distinctive Range</div>
-                                                                    <div className="text-foreground">{request.distinctiveFrom} - {request.distinctiveTo}</div>
+                                                                    <div className="text-foreground">{request.distinctive_from} - {request.distinctive_to}</div>
                                                                 </div>
                                                                 <div>
                                                                     <div className="text-xs text-muted font-semibold uppercase mb-1">Supporting Document</div>
                                                                     <div className="flex items-center text-primary group cursor-pointer">
                                                                         <Icon name="DocumentIcon" size={14} className="mr-1" />
-                                                                        <span className="underline truncate">{request.fileName}</span>
+                                                                        <span className="underline truncate">{request.file_name}</span>
                                                                         <ExternalLink className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                     </div>
                                                                 </div>
@@ -332,7 +358,7 @@ export default function DematerializeFormPage() {
                     </Card>
 
                     {/* Resolved Requests */}
-                    {dematRequests.filter(r => r.userId === 'cust_1' && r.status === 'completed').length > 0 && (
+                    {fetchedRequests.filter(r => r.status === 'completed').length > 0 && (
                         <Card className="border-border shadow-sm overflow-hidden">
                             <CardHeader className="bg-surface/30 border-b border-border/50">
                                 <CardTitle className="text-base font-medium">Recently Resolved</CardTitle>
@@ -348,10 +374,10 @@ export default function DematerializeFormPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {dematRequests.filter(r => r.userId === 'cust_1' && r.status === 'completed').map(request => (
+                                        {fetchedRequests.filter(r => r.status === 'completed').map(request => (
                                             <TableRow key={request.id} className="hover:bg-surface/20">
-                                                <TableCell className="pl-6 font-medium text-foreground">{request.companyName}</TableCell>
-                                                <TableCell className="text-muted">{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                                                <TableCell className="pl-6 font-medium text-foreground">{request.company_name}</TableCell>
+                                                <TableCell className="text-muted">{new Date(request.created_at).toLocaleDateString()}</TableCell>
                                                 <TableCell>{request.quantity}</TableCell>
                                                 <TableCell className="pr-6 text-right text-green-600 font-bold text-[10px] uppercase tracking-widest">
                                                     <span className="inline-flex items-center px-2 py-1 rounded bg-green-50 border border-green-100">

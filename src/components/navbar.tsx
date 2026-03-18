@@ -20,6 +20,7 @@ export function Navbar() {
 
                 <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
                     <Link href="/shares" className="hover:text-blue-600 transition-colors">Digital Shares</Link>
+                    <Link href="/dashboard/customer/dematerialize" className="hover:text-blue-600 transition-colors font-semibold text-primary">Demat Conversion</Link>
                     <Link href="/about" className="hover:text-blue-600 transition-colors">How it works</Link>
                     <Link href="/dashboard/customer" className="hover:text-blue-600 transition-colors">Customer Portal</Link>
                     <div className="h-4 w-px bg-slate-200" />

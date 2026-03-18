@@ -52,7 +52,7 @@ export default function CtaSection() {
                         </button>
                     </div>
                     <p className="reveal text-white/30 text-xs mt-6 delay-300">
-                        SEBI Registered · Shares held in your own Demat · Zero hidden charges
+                        Shares held in your own Demat · Zero hidden charges
                     </p>
                 </div>
             </div>

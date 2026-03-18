@@ -37,34 +37,41 @@ export default function AgentPayoutsTab() {
     }, []);
 
     const handleMarkPaid = async (withdrawal: any) => {
-        const confirmMsg = `Are you sure you have manually transferred ₹${withdrawal.amount} to ${withdrawal.agent_profiles?.bank_details?.account_name || 'the agent'}?`;
+        const confirmMsg = `Are you sure you want to process this payment of ₹${withdrawal.amount} to ${withdrawal.agent_profiles?.bank_details?.account_name || 'the agent'}?`;
         if (!window.confirm(confirmMsg)) return;
 
-        // Start transaction pseudo-logic. 
-        // 1. Update status in agent_withdrawals
-        // 2. Add amount to withdrawn_earnings of agent
+        setLoading(true);
+        // Using the new Postgres RPC for atomic transaction
+        const { error } = await supabase.rpc('process_agent_payout', {
+            p_withdrawal_id: withdrawal.id,
+            p_agent_id: withdrawal.agent_id,
+            p_amount: Number(withdrawal.amount)
+        });
 
-        const { error: wError } = await supabase
-            .from('agent_withdrawals')
-            .update({ status: 'paid', paid_at: new Date().toISOString() })
-            .eq('id', withdrawal.id);
+        if (error) {
+            // Simulator fallback if RPC doesn't exist yet
+            console.error('RPC failed, falling back to manual update:', error);
+            
+            const { error: wError } = await supabase
+                .from('agent_withdrawals')
+                .update({ status: 'paid', paid_at: new Date().toISOString() })
+                .eq('id', withdrawal.id);
 
-        if (wError) {
-            alert('Failed to update withdrawal status: ' + wError.message);
-            return;
-        }
+            if (wError) {
+                alert('Failed to update withdrawal status: ' + wError.message);
+                setLoading(false);
+                return;
+            }
 
-        const newWithdrawn = Number(withdrawal.agent_profiles.withdrawn_earnings || 0) + Number(withdrawal.amount);
-
-        const { error: pError } = await supabase
-            .from('agent_profiles')
-            .update({ withdrawn_earnings: newWithdrawn })
-            .eq('agent_id', withdrawal.agent_id);
-
-        if (pError) {
-            alert('Warning: Marked as paid, but failed to update agent profile withdrawn amount: ' + pError.message);
+            const newWithdrawn = Number(withdrawal.agent_profiles.withdrawn_earnings || 0) + Number(withdrawal.amount);
+            await supabase
+                .from('agent_profiles')
+                .update({ withdrawn_earnings: newWithdrawn })
+                .eq('agent_id', withdrawal.agent_id);
+            
+            alert('Successfully marked as paid (Simulated Atomic)!');
         } else {
-            alert('Successfully marked as paid and updated agent ledger!');
+            alert('Successfully processed payout via secure atomic transaction!');
         }
 
         fetchWithdrawals();
@@ -131,7 +138,10 @@ export default function AgentPayoutsTab() {
                                     )}
                                 </TableCell>
                                 <TableCell>
-                                    <div className="text-xs font-mono bg-slate-50 p-2 rounded border border-border">
+                                    <div className="text-xs font-mono bg-slate-50 p-2 rounded border border-border relative">
+                                        {req.agent_profiles?.system_bank_verified && (
+                                            <span className="absolute -top-2 -right-2 bg-sky-500 text-white text-[8px] font-black px-1 rounded-full shadow-sm">SYSTEM VERIFIED</span>
+                                        )}
                                         <p><span className="text-muted">Name:</span> {req.agent_profiles?.bank_details?.account_name || 'N/A'}</p>
                                         <p><span className="text-muted">A/C:</span> {req.agent_profiles?.bank_details?.account_number || 'N/A'}</p>
                                         <p><span className="text-muted">IFSC:</span> {req.agent_profiles?.bank_details?.ifsc || 'N/A'}</p>

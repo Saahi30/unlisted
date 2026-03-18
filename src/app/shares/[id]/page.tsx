@@ -1,16 +1,18 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useState } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, TrendingUp, ShieldAlert, LineChart } from 'lucide-react';
 import CompanyPriceChart from '@/components/CompanyPriceChart';
+import ZeptoDetails from '@/components/ZeptoDetails';
 
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { companies, historicalPrices } = useAppStore();
+    const [showChart, setShowChart] = useState(true);
     const company = companies.find(c => c.id === id);
 
     if (!company) {
@@ -64,20 +66,36 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
                     <Card>
                         <CardHeader className="border-b border-slate-100 pb-4">
-                            <CardTitle className="text-lg flex items-center">
-                                <LineChart className="mr-2 h-5 w-5 text-blue-600" /> Valuation History
-                            </CardTitle>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-lg flex items-center">
+                                    <LineChart className="mr-2 h-5 w-5 text-blue-600" /> Valuation History
+                                </CardTitle>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setShowChart(!showChart)}
+                                    className="h-8 text-xs font-medium text-slate-600 hover:text-blue-600"
+                                >
+                                    {showChart ? 'Hide Graph' : 'Show Graph'}
+                                </Button>
+                            </div>
                         </CardHeader>
-                        <CardContent className="pt-6">
-                            <CompanyPriceChart
-                                data={historicalPrices
-                                    .filter(p => p.companyId === company.id)
-                                    .map(p => ({ date: p.priceDate, value: p.priceValue }))
-                                }
-                                color="#2563eb"
-                            />
-                        </CardContent>
+                        {showChart && (
+                            <CardContent className="pt-6 animate-in fade-in duration-300 slide-in-from-top-2">
+                                <CompanyPriceChart
+                                    data={historicalPrices
+                                        .filter(p => p.companyId === company.id)
+                                        .map(p => ({ date: p.priceDate, value: p.priceValue }))
+                                    }
+                                    color="#2563eb"
+                                />
+                            </CardContent>
+                        )}
                     </Card>
+
+                    {company.name.toLowerCase().includes('zepto') && (
+                        <ZeptoDetails />
+                    )}
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                         <h4 className="flex items-center font-semibold text-amber-900 mb-2">
@@ -127,6 +145,13 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                         </CardContent>
                     </Card>
                 </div>
+            </div>
+            {/* Disclaimer at the bottom */}
+            <div className="mt-16 pt-8 border-t border-slate-100 text-[10px] md:text-xs text-slate-400 leading-relaxed text-center">
+                <p>
+                    <strong>Disclaimer:</strong> Unlisted shares are not traded on any stock exchange and carry higher risk. 
+                    Prices are indicative and may vary. Please conduct your own research or consult a financial advisor before investing.
+                </p>
             </div>
         </div>
     );

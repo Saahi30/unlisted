@@ -2,10 +2,14 @@
 import React, { useEffect, useRef } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import { useRouter } from 'next/navigation';
+import { useAppStore } from '@/lib/store';
 
 export default function HeroSection() {
     const floatRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const { homePageData } = useAppStore();
+
+    if (!homePageData) return null;
 
     useEffect(() => {
         const onMove = (e: MouseEvent) => {
@@ -47,11 +51,11 @@ export default function HeroSection() {
                     </span>
                     <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-light leading-[0.92] tracking-tight text-foreground mb-6 animate-in fade-in slide-in-from-left-8 duration-1000 delay-150">
                         Invest Before<br />
-                        <span className="italic text-accent">the Crowd</span><br />
+                        <span className="italic text-accent">{homePageData.hero.highlight}</span><br />
                         Does.
                     </h1>
                     <p className="text-muted text-sm leading-relaxed max-w-xs border-l-2 border-border pl-5 font-light animate-in fade-in slide-in-from-left-12 duration-1000 delay-300">
-                        Access high-growth Indian companies — Swiggy, NSDL, HDB Financial — before they list. We also help convert your <span className="text-accent font-medium italic underline decoration-accent/20">physical shares</span> to digital in your Demat account.
+                        {homePageData.hero.description}
                     </p>
                 </div>
 
@@ -78,7 +82,10 @@ export default function HeroSection() {
                             <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                         </svg>
                     </button>
-                    <p className="text-[10px] text-muted text-center mt-3">No account opening charges · SEBI Registered</p>
+                    <div className="flex justify-between items-center mt-4">
+                        <p className="text-[10px] text-muted">No account opening charges</p>
+                        <p className="text-[10px] text-muted font-semibold">{homePageData.stats.users} Joined</p>
+                    </div>
                 </div>
             </div>
 
@@ -89,7 +96,7 @@ export default function HeroSection() {
                     style={{ borderRadius: '10rem 10rem 0.75rem 0.75rem' }}>
 
                     <AppImage
-                        src="https://img.rocket.new/generatedImages/rocket_gen_img_17cca8024-1766513023990.png"
+                        src={homePageData.hero.img}
                         alt="Stock market trading charts on multiple screens in a modern office"
                         className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-[2.5s]"
                         fill />
@@ -111,9 +118,9 @@ export default function HeroSection() {
                     <div className="flex items-end justify-between">
                         <div>
                             <p className="text-[10px] opacity-60 mb-0.5">Offer Price</p>
-                            <p className="text-lg font-semibold">₹385<span className="text-xs font-normal opacity-70">/share</span></p>
+                            <p className="text-lg font-semibold">{homePageData.hero.offerPrice}<span className="text-xs font-normal opacity-70">/share</span></p>
                         </div>
-                        <span className="text-xs bg-green-400/20 text-green-300 px-2 py-1 rounded-full font-medium">+12.4%</span>
+                        <span className="text-xs bg-green-400/20 text-green-300 px-2 py-1 rounded-full font-medium">{homePageData.hero.offerChange}</span>
                     </div>
                 </div>
 

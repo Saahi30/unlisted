@@ -6,22 +6,36 @@ export interface Company {
     sector: string;
     valuation: number; // in crores INR
     status: CompanyStatus;
+    category?: string; // e.g. 'Food Tech · Pre-IPO'
     currentAskPrice: number;
     currentBidPrice: number;
     description: string;
+    change?: string; // e.g. '+12.4%'
+    positive?: boolean;
+    minInvest?: string; // e.g. '₹50,000'
+    img?: string;
+    imgAlt?: string;
     aiContext?: string;
+    isFeatured?: boolean;
 }
 
 export const MOCK_COMPANIES: Company[] = [
     {
         id: "comp_1",
-        name: "Swiggy",
+        name: "Swiggy Ltd.",
         sector: "FoodTech",
         valuation: 85000,
         status: "pre_ipo",
+        category: 'Food Tech · Pre-IPO',
         currentAskPrice: 450,
         currentBidPrice: 440,
-        description: "Leading food delivery and quick commerce platform in India."
+        change: '+12.4%',
+        positive: true,
+        minInvest: '₹50,000',
+        img: "https://images.unsplash.com/photo-1577596760863-e25afdd02da1",
+        imgAlt: 'Food delivery bag on a motorbike in an Indian city',
+        description: "Leading food delivery and quick commerce platform in India.",
+        isFeatured: true
     },
     {
         id: "comp_2",
@@ -29,9 +43,16 @@ export const MOCK_COMPANIES: Company[] = [
         sector: "FinTech",
         valuation: 25000,
         status: "series_c",
+        category: 'FinTech · Series C',
         currentAskPrice: 1250,
         currentBidPrice: 1200,
-        description: "Online investment and trading platform democratizing finance."
+        change: '+8.1%',
+        positive: true,
+        minInvest: '₹1,00,000',
+        img: "/assets/images/groww.jpg",
+        imgAlt: 'Investment app on smartphone showing portfolio growth',
+        description: "Online investment and trading platform democratizing finance.",
+        isFeatured: true
     },
     {
         id: "comp_3",
@@ -39,9 +60,33 @@ export const MOCK_COMPANIES: Company[] = [
         sector: "FinTech",
         valuation: 60000,
         status: "pre_ipo",
+        category: 'FinTech · Pre-IPO',
         currentAskPrice: 3200,
         currentBidPrice: 3100,
-        description: "Payments solution provider that allows businesses to accept, process, and disburse payments."
+        change: '+21.7%',
+        positive: true,
+        minInvest: '₹75,000',
+        img: "https://images.unsplash.com/photo-1654263937085-48fb17a63d66",
+        imgAlt: 'Payment terminal on retail counter with card transaction',
+        description: "Payments solution provider that allows businesses to accept, process, and disburse payments.",
+        isFeatured: true
+    },
+    {
+        id: "comp_5",
+        name: "Zepto",
+        sector: "Quick Commerce",
+        valuation: 51229,
+        status: "pre_ipo",
+        category: 'Quick Commerce · Pre-IPO',
+        currentAskPrice: 54,
+        currentBidPrice: 50,
+        change: '-6.90%',
+        positive: false,
+        minInvest: '₹25,000',
+        img: "https://images.unsplash.com/photo-1542838132-92c53300491e",
+        imgAlt: 'Grocery delivery worker packing fresh produce in a warehouse',
+        description: "10-minute grocery delivery service.",
+        isFeatured: true
     },
     {
         id: "comp_4",
@@ -49,21 +94,45 @@ export const MOCK_COMPANIES: Company[] = [
         sector: "SaaS",
         valuation: 45000,
         status: "series_c",
+        category: 'SaaS · Series C',
         currentAskPrice: 5400,
         currentBidPrice: 5200,
-        description: "API platform for building and using APIs."
-    },
-    {
-        id: "comp_5",
-        name: "Zepto",
-        sector: "Quick Commerce",
-        valuation: 11000,
-        status: "series_c",
-        currentAskPrice: 850,
-        currentBidPrice: 820,
-        description: "10-minute grocery delivery service."
+        change: '+15.3%',
+        positive: true,
+        minInvest: '₹50,000',
+        img: "https://images.unsplash.com/photo-1556740758-90de374c12ad",
+        imgAlt: 'Modern bank branch interior with financial advisors',
+        description: "API platform for building and using APIs.",
+        isFeatured: true
     }
 ];
+
+export const MOCK_HISTORICAL_PRICES = [
+    { id: 'hp_1', companyId: 'comp_5', priceDate: '2026-02-01', priceValue: 58 },
+    { id: 'hp_2', companyId: 'comp_5', priceDate: '2026-02-08', priceValue: 56 },
+    { id: 'hp_3', companyId: 'comp_5', priceDate: '2026-02-15', priceValue: 56 },
+    { id: 'hp_4', companyId: 'comp_5', priceDate: '2026-02-22', priceValue: 56 },
+    { id: 'hp_5', companyId: 'comp_5', priceDate: '2026-03-01', priceValue: 56 },
+    { id: 'hp_6', companyId: 'comp_5', priceDate: '2026-03-02', priceValue: 54 },
+    { id: 'hp_7', companyId: 'comp_5', priceDate: '2026-03-08', priceValue: 54 },
+    { id: 'hp_8', companyId: 'comp_5', priceDate: '2026-03-14', priceValue: 54 }
+];
+
+export const HOME_PAGE_DATA = {
+    hero: {
+        title: "Invest Before the Crowd Does.",
+        highlight: "the Crowd",
+        description: "Access high-growth Indian companies — Swiggy, NSDL, HDB Financial — before they list. We also help convert your physical shares to digital in your Demat account.",
+        img: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f",
+        offerPrice: "₹385",
+        offerChange: "+12.4%"
+    },
+    stats: {
+        avgReturns: "2.8×",
+        totalOrders: "12,000+",
+        users: "50,000+"
+    }
+};
 
 
 export interface Order {
@@ -135,6 +204,10 @@ export interface Lead {
     pan?: string;
     bank?: string;
     address?: string;
+    companyId?: string;
+    companyName?: string;
+    quantity?: number;
+    price?: number;
     createdAt: string;
 }
 

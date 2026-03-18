@@ -23,7 +23,9 @@ export default function AgentDashboardPage() {
     const [pan, setPan] = useState('');
     const [aadhar, setAadhar] = useState('');
     const [bankDetails, setBankDetails] = useState({ account_name: '', account_number: '', ifsc: '' });
-    const [cmrUploaded, setCmrUploaded] = useState(false);
+    const [cmrFile, setCmrFile] = useState<File | null>(null);
+    const [cmrStatus, setCmrStatus] = useState('not_uploaded');
+    const [cmrUrl, setCmrUrl] = useState('');
 
     const supabase = createClient();
 
@@ -41,7 +43,8 @@ export default function AgentDashboardPage() {
                 setPan(data.pan_number || '');
                 setAadhar(data.aadhar_number || '');
                 setBankDetails(data.bank_details || { account_name: '', account_number: '', ifsc: '' });
-                setCmrUploaded(data.cmr_uploaded || false);
+                setCmrStatus(data.cmr_status || 'not_uploaded');
+                setCmrUrl(data.cmr_url || '');
             } else if (user.id === 'agt_1') {
                 // Simulator mock
                 setKycData({
@@ -49,7 +52,8 @@ export default function AgentDashboardPage() {
                     pan_number: '',
                     aadhar_number: '',
                     bank_details: { account_name: '', account_number: '', ifsc: '' },
-                    cmr_uploaded: false
+                    cmr_status: 'not_uploaded',
+                    cmr_url: ''
                 });
             }
             setKycLoading(false);
@@ -60,7 +64,7 @@ export default function AgentDashboardPage() {
     const submitKyc = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!cmrUploaded) {
+        if (cmrStatus === 'not_uploaded' && !cmrFile) {
             alert('Please upload your Client Master Report (CMR) before submitting.');
             return;
         }
@@ -68,14 +72,24 @@ export default function AgentDashboardPage() {
         if (!user) return;
         setSubmittingKyc(true);
 
-        // Ensure standard customers don't overwrite if they aren't agents. 
-        // We bypass in simulator for 'agt_1'.
+        let finalCmrUrl = cmrUrl;
+        let finalCmrStatus = cmrStatus;
+
+        // If a new file is uploaded, simulate storage upload
+        if (cmrFile) {
+            // Simulator: just pretend we uploaded it to S3/Supabase Storage
+            finalCmrUrl = `https://storage.sharesaathi.com/cmr/${user.id}/${cmrFile.name}`;
+            finalCmrStatus = 'pending';
+        }
+
         const payload = {
             agent_id: user.id,
             pan_number: pan,
             aadhar_number: aadhar,
             bank_details: bankDetails,
-            cmr_uploaded: cmrUploaded,
+            cmr_url: finalCmrUrl,
+            cmr_status: finalCmrStatus,
+            cmr_uploaded: true,
             kyc_status: 'pending',
             updated_at: new Date().toISOString()
         };
@@ -88,10 +102,14 @@ export default function AgentDashboardPage() {
 
         if (!error) {
             setKycData({ ...kycData, ...payload });
-            alert('KYC Submitted Successfully! Awaiting Admin Approval.');
+            setCmrStatus(finalCmrStatus);
+            setCmrUrl(finalCmrUrl);
+            alert('KYC & CMR Submitted Successfully! Awaiting Admin Approval.');
         } else if (user.id === 'agt_1') {
             // Simulator failover
             setKycData({ ...payload, kyc_status: 'pending' });
+            setCmrStatus(finalCmrStatus);
+            setCmrUrl(finalCmrUrl);
             alert('Simulator: KYC Submitted Success (Mocked).');
         } else {
             alert('Failed to submit KYC. ' + error.message);
@@ -254,30 +272,65 @@ export default function AgentDashboardPage() {
 
                             <div className="pt-6 border-t border-border mt-6">
                                 <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Dematerialization Details</h3>
-                                <div className={`relative p-4 rounded-xl border-2 border-dashed transition-all ${cmrUploaded ? 'border-green-200 bg-green-50/50' : 'border-border bg-slate-50'}`}>
+                                <div className={`relative p-4 rounded-xl border-2 border-dashed transition-all ${cmrStatus !== 'not_uploaded' || cmrFile ? 'border-green-200 bg-green-50/50' : 'border-border bg-slate-50'}`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${cmrUploaded ? 'bg-green-100 text-green-600' : 'bg-white border border-border text-muted'}`}>
-                                                {cmrUploaded ? <Icon name="CheckCircleIcon" size={18} /> : <Icon name="DocumentArrowUpIcon" size={18} />}
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(cmrStatus !== 'not_uploaded' || cmrFile) ? 'bg-green-100 text-green-600' : 'bg-white border border-border text-muted'}`}>
+                                                {(cmrStatus === 'verified') ? <Icon name="CheckCircleIcon" size={18} /> : <Icon name="DocumentArrowUpIcon" size={18} />}
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-1.5">
                                                     <p className="text-[11px] font-bold text-foreground uppercase tracking-wider">Client Master Report (CMR)</p>
+                                                    {cmrStatus !== 'not_uploaded' && (
+                                                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ${cmrStatus === 'verified' ? 'bg-green-100 text-green-700' :
+                                                                cmrStatus === 'rejected' ? 'bg-red-50 text-red-600' :
+                                                                    'bg-amber-50 text-amber-600'
+                                                            }`}>
+                                                            {cmrStatus}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <p className="text-[10px] text-muted">{cmrUploaded ? 'File ready' : 'PDF or Image required'}</p>
+                                                <p className="text-[10px] text-muted">
+                                                    {cmrFile ? `Ready to upload: ${cmrFile.name}` :
+                                                        cmrStatus === 'verified' ? 'Verified by Admin ✓' :
+                                                            cmrStatus === 'pending' ? 'Document under review' :
+                                                                cmrStatus === 'rejected' ? `Rejected: ${kycData?.cmr_rejection_reason || 'Please re-upload'}` :
+                                                                    'PDF or Image required'}
+                                                </p>
                                             </div>
                                         </div>
-                                        {!cmrUploaded ? (
-                                            <button
-                                                type="button"
-                                                className="h-8 px-4 text-[10px] font-bold uppercase bg-white border border-border rounded-md hover:bg-slate-50 transition-colors"
-                                                onClick={() => setCmrUploaded(true)}
-                                                disabled={isApproved}
-                                            >
-                                                Upload CMR
-                                            </button>
+                                        {cmrStatus === 'not_uploaded' && !cmrFile ? (
+                                            <div className="relative">
+                                                <input
+                                                    type="file"
+                                                    id="cmr-upload"
+                                                    className="hidden"
+                                                    accept=".pdf,image/*"
+                                                    onChange={e => setCmrFile(e.target.files?.[0] || null)}
+                                                    disabled={isApproved}
+                                                />
+                                                <label
+                                                    htmlFor="cmr-upload"
+                                                    className="h-8 px-4 text-[10px] flex items-center justify-center font-bold uppercase bg-white border border-border rounded-md hover:bg-slate-50 cursor-pointer transition-colors"
+                                                >
+                                                    Upload CMR
+                                                </label>
+                                            </div>
                                         ) : (
-                                            <button type="button" onClick={() => setCmrUploaded(false)} className="text-[10px] text-red-500 font-bold hover:underline" disabled={isApproved}>Remove</button>
+                                            <div className="flex items-center gap-3">
+                                                {cmrUrl && (
+                                                    <a href={cmrUrl} target="_blank" className="text-[10px] text-primary font-bold hover:underline">View File</a>
+                                                )}
+                                                {!isApproved && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setCmrFile(null); setCmrStatus('not_uploaded'); }}
+                                                        className="text-[10px] text-red-500 font-bold hover:underline"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                     <p className="text-[10px] text-muted mt-3">We need your CMR to verify your demat account ownership for transferring your partner shares.</p>

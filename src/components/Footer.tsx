@@ -34,7 +34,13 @@ export default function Footer() {
 
             <div className="max-w-screen-xl mx-auto mt-6 pt-6 border-t border-border flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-muted">
                 <span>© 2026 ShareSaathi Trading Pvt. Ltd. All rights reserved.</span>
-                <span className="text-xs">SEBI Registered Intermediary · IN-DP-NSDL-XXX-2021</span>
+            </div>
+
+            <div className="max-w-screen-xl mx-auto mt-4 text-[10px] md:text-xs text-muted/60 leading-relaxed text-center md:text-left">
+                <p>
+                    <strong>Disclaimer:</strong> Unlisted shares are not traded on any stock exchange and carry higher risk. 
+                    Prices are indicative and may vary. Please conduct your own research or consult a financial advisor before investing.
+                </p>
             </div>
         </footer>
     );

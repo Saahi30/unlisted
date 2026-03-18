@@ -8,9 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, AlertTriangle, ShieldCheck, Upload, PhoneForwarded, CheckCircle2 } from 'lucide-react';
 
+import { useAuth } from '@/lib/auth-context';
+
 export default function BuyOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
     const router = useRouter();
+    const { user } = useAuth();
     const { addOrder, addLead, leads, companies } = useAppStore();
     const company = companies.find(c => c.id === id);
 
@@ -49,7 +52,7 @@ export default function BuyOrderPage({ params }: { params: Promise<{ id: string 
             companyId: company.id,
             companyName: company.name,
             isin: 'INE123456789', // Mock ISIN
-            userId: 'cust_1',
+            userId: user?.id || 'cust_1',
             quantity: quantity,
             price: company.currentAskPrice,
             totalAmount: totalValue,
@@ -88,8 +91,8 @@ export default function BuyOrderPage({ params }: { params: Promise<{ id: string 
                 // Generate Lead for RM and Sales
                 addLead({
                     id: 'lead_' + Math.random().toString(36).substring(7),
-                    name: "Customer User", // mock
-                    email: "customer@preipo.com",
+                    name: user?.name || "Customer User",
+                    email: user?.email || "customer@preipo.com",
                     phone: "+91 9999999999",
                     assignedRmId: "sls_1",
                     notes: [`Uploaded RTGS proof for ${quantity} shares of ${company.name}`],
@@ -110,8 +113,8 @@ export default function BuyOrderPage({ params }: { params: Promise<{ id: string 
 
                 addLead({
                     id: 'lead_' + Math.random().toString(36).substring(7),
-                    name: "Customer User", // mock
-                    email: "customer@preipo.com",
+                    name: user?.name || "Customer User",
+                    email: user?.email || "customer@preipo.com",
                     phone: "+91 9999999999",
                     assignedRmId: "sls_1",
                     notes: [`Requested RM connect for buying ${quantity} shares of ${company.name}`],

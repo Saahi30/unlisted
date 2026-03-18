@@ -2,67 +2,14 @@
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-
-const companies = [
-    {
-        id: 'comp_1',
-        name: 'Swiggy Ltd.',
-        category: 'Food Tech · Pre-IPO',
-        price: '₹450',
-        change: '+12.4%',
-        positive: true,
-        minInvest: '₹50,000',
-        img: "https://images.unsplash.com/photo-1577596760863-e25afdd02da1",
-        imgAlt: 'Food delivery bag on a motorbike in an Indian city'
-    },
-    {
-        id: 'comp_2',
-        name: 'Groww',
-        category: 'FinTech · series_c',
-        price: '₹1,250',
-        change: '+8.1%',
-        positive: true,
-        minInvest: '₹1,00,000',
-        img: "https://images.unsplash.com/photo-1611974789855-9c2a0a2236a0",
-        imgAlt: 'Investment app on smartphone next to financial charts'
-    },
-    {
-        id: 'comp_3',
-        name: 'Razorpay',
-        category: 'FinTech · Pre-IPO',
-        price: '₹3,200',
-        change: '+21.7%',
-        positive: true,
-        minInvest: '₹75,000',
-        img: "https://images.unsplash.com/photo-1654263937085-48fb17a63d66",
-        imgAlt: 'Payment terminal on retail counter with card transaction'
-    },
-    {
-        id: 'comp_5',
-        name: 'Zepto',
-        category: 'Quick Commerce · series_c',
-        price: '₹850',
-        change: '-3.2%',
-        positive: false,
-        minInvest: '₹25,000',
-        img: "https://images.unsplash.com/photo-1542838132-92c53300491e",
-        imgAlt: 'Grocery delivery worker packing fresh produce in a warehouse'
-    },
-    {
-        id: 'comp_4',
-        name: 'Postman',
-        category: 'SaaS · series_c',
-        price: '₹5,400',
-        change: '+15.3%',
-        positive: true,
-        minInvest: '₹50,000',
-        img: "https://images.unsplash.com/photo-1556740758-90de374c12ad",
-        imgAlt: 'Modern bank branch interior with financial advisors'
-    }];
+import { useAppStore } from '@/lib/store';
+import { Company } from '@/lib/mock-data';
 
 
 export default function CompaniesSection() {
     const sectionRef = useRef<HTMLElement>(null);
+    const { companies } = useAppStore();
+    const featuredCompanies = companies.filter(c => c.isFeatured);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -119,12 +66,12 @@ export default function CompaniesSection() {
                 </div>
             </div>
 
-            <CompanyCarousel companies={companies} />
+            <CompanyCarousel companies={featuredCompanies} />
         </section>);
 
 }
 
-type CompanyItem = typeof companies[0];
+type CompanyItem = Company;
 
 function CompanyCarousel({ companies }: { companies: CompanyItem[] }) {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -155,8 +102,8 @@ function CompanyCarousel({ companies }: { companies: CompanyItem[] }) {
 
                     <div className="relative h-[460px] overflow-hidden rounded-xl border border-white/10">
                         <AppImage
-                            src={co.img}
-                            alt={co.imgAlt}
+                            src={co.img || ''}
+                            alt={co.imgAlt || ''}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-75 group-hover:opacity-95"
                             fill />
 
@@ -176,7 +123,7 @@ function CompanyCarousel({ companies }: { companies: CompanyItem[] }) {
                             <div className="flex items-end justify-between">
                                 <div>
                                     <p className="text-[10px] text-white/50 mb-0.5">Current Price</p>
-                                    <p className="text-2xl font-semibold text-white">{co.price}</p>
+                                    <p className="text-2xl font-semibold text-white">₹{co.currentAskPrice}</p>
                                 </div>
                                 <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${co.positive ? 'bg-green-400/15 text-green-400' : 'bg-red-400/15 text-red-400'}`}>
                                     {co.change}
