@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, MOCK_USERS, MOCK_BLOGS, MOCK_HISTORICAL_PRICES } from './mock-data';
+import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, CompanyFinancial, MOCK_USERS, MOCK_BLOGS, MOCK_HISTORICAL_PRICES } from './mock-data';
 import { UserRole } from './auth-context';
 import { supabase } from './supabase';
 
@@ -91,6 +91,7 @@ interface AppState {
     teams: Team[];
     blogs: Blog[];
     historicalPrices: HistoricalPrice[];
+    companyFinancials: CompanyFinancial[];
     homePageData: any;
     addOrder: (order: ExtendedOrder) => void;
     updateOrderStatus: (id: string, status: OrderStatus, deliveryDetails?: any, txProofUrl?: string) => void;
@@ -146,6 +147,7 @@ export const useAppStore = create<AppState>()(
             dematRequests: [],
             blogs: [],
             historicalPrices: [...MOCK_HISTORICAL_PRICES],
+            companyFinancials: [],
             homePageData: HOME_PAGE_DATA,
             rmTargets: {
                 'sls_1': 6000000,
@@ -542,9 +544,82 @@ export const useAppStore = create<AppState>()(
                             currentAskPrice: c.current_ask_price,
                             currentBidPrice: c.current_bid_price,
                             description: c.description || '',
-                            aiContext: c.ai_context || ''
+                            aiContext: c.ai_context || '',
+                            lotSize: c.lot_size,
+                            week52High: c.week_52_high,
+                            week52Low: c.week_52_low,
+                            peRatio: c.pe_ratio,
+                            pbRatio: c.pb_ratio,
+                            debtToEquity: c.debt_to_equity,
+                            roe: c.roe,
+                            bookValue: c.book_value,
+                            faceValue: c.face_value,
+                            totalShares: c.total_shares,
+                            isin: c.isin,
+                            panNumber: c.pan_number,
+                            cin: c.cin,
+                            depository: c.depository,
+                            rta: c.rta,
+                            marketCap: c.market_cap,
+                            category: c.category,
+                            change: c.change,
+                            positive: c.positive,
+                            minInvest: c.min_invest,
+                            img: c.img,
+                            imgAlt: c.img_alt,
+                            isFeatured: c.is_featured,
                         }));
                         set({ companies: parsedCompanies as Company[] });
+                    }
+
+                    // Fetch Company Financials
+                    const { data: financialsData } = await supabase.from('company_financials')
+                        .select('*')
+                        .order('fiscal_year', { ascending: true });
+                    if (financialsData && financialsData.length > 0) {
+                        const parsedFinancials = financialsData.map(f => ({
+                            id: f.id,
+                            companyId: f.company_id,
+                            fiscalYear: f.fiscal_year,
+                            revenue: f.revenue,
+                            costOfMaterial: f.cost_of_material,
+                            changeInInventory: f.change_in_inventory,
+                            grossMargins: f.gross_margins,
+                            employeeExpenses: f.employee_expenses,
+                            otherExpenses: f.other_expenses,
+                            ebitda: f.ebitda,
+                            opm: f.opm,
+                            otherIncome: f.other_income,
+                            financeCost: f.finance_cost,
+                            depreciation: f.depreciation,
+                            ebit: f.ebit,
+                            ebitMargins: f.ebit_margins,
+                            pbt: f.pbt,
+                            pbtMargins: f.pbt_margins,
+                            tax: f.tax,
+                            pat: f.pat,
+                            npm: f.npm,
+                            eps: f.eps,
+                            fixedAssets: f.fixed_assets,
+                            cwip: f.cwip,
+                            investments: f.investments,
+                            tradeReceivables: f.trade_receivables,
+                            inventory: f.inventory,
+                            otherAssets: f.other_assets,
+                            totalAssets: f.total_assets,
+                            shareCapital: f.share_capital,
+                            reserves: f.reserves,
+                            borrowings: f.borrowings,
+                            tradePayables: f.trade_payables,
+                            otherLiabilities: f.other_liabilities,
+                            totalLiabilities: f.total_liabilities,
+                            pbtCashflow: f.pbt_cashflow,
+                            workingCapitalChange: f.working_capital_change,
+                            cashFromOperations: f.cash_from_operations,
+                            purchaseOfPpe: f.purchase_of_ppe,
+                            cashFromInvestment: f.cash_from_investment,
+                        }));
+                        set({ companyFinancials: parsedFinancials as CompanyFinancial[] });
                     }
 
                     // Fetch Teams
@@ -649,12 +724,13 @@ export const useAppStore = create<AppState>()(
         }),
         {
             name: 'sharesaathi-storage',
-            version: 3, // bump to clear cached mock companies; now loads live from Supabase
+            version: 4, // bump to clear cache after adding company fundamentals & financials
             partialize: (state) => ({
                 orders: state.orders,
                 leads: state.leads,
                 companies: state.companies,
                 historicalPrices: state.historicalPrices,
+                companyFinancials: state.companyFinancials,
                 dematRequests: state.dematRequests,
                 rmTargets: state.rmTargets,
                 users: state.users,

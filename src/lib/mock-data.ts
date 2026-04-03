@@ -17,6 +17,69 @@ export interface Company {
     imgAlt?: string;
     aiContext?: string;
     isFeatured?: boolean;
+    // Fundamental data
+    lotSize?: number;
+    week52High?: number;
+    week52Low?: number;
+    peRatio?: number | null;
+    pbRatio?: number | null;
+    debtToEquity?: number | null;
+    roe?: number | null;
+    bookValue?: number | null;
+    faceValue?: number;
+    totalShares?: number;
+    isin?: string;
+    panNumber?: string;
+    cin?: string;
+    depository?: string;
+    rta?: string;
+    marketCap?: number;
+}
+
+export interface CompanyFinancial {
+    id: string;
+    companyId: string;
+    fiscalYear: string;
+    // Income Statement
+    revenue?: number | null;
+    costOfMaterial?: number | null;
+    changeInInventory?: number | null;
+    grossMargins?: number | null;
+    employeeExpenses?: number | null;
+    otherExpenses?: number | null;
+    ebitda?: number | null;
+    opm?: number | null;
+    otherIncome?: number | null;
+    financeCost?: number | null;
+    depreciation?: number | null;
+    ebit?: number | null;
+    ebitMargins?: number | null;
+    pbt?: number | null;
+    pbtMargins?: number | null;
+    tax?: number | null;
+    pat?: number | null;
+    npm?: number | null;
+    eps?: number | null;
+    // Balance Sheet
+    fixedAssets?: number | null;
+    cwip?: number | null;
+    investments?: number | null;
+    tradeReceivables?: number | null;
+    inventory?: number | null;
+    otherAssets?: number | null;
+    totalAssets?: number | null;
+    shareCapital?: number | null;
+    reserves?: number | null;
+    borrowings?: number | null;
+    tradePayables?: number | null;
+    otherLiabilities?: number | null;
+    totalLiabilities?: number | null;
+    // Cash Flow
+    pbtCashflow?: number | null;
+    workingCapitalChange?: number | null;
+    cashFromOperations?: number | null;
+    purchaseOfPpe?: number | null;
+    cashFromInvestment?: number | null;
 }
 
 export const MOCK_COMPANIES: Company[] = [
