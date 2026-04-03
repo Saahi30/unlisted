@@ -7,7 +7,7 @@ import Icon from '@/components/ui/AppIcon';
 import { useAuth } from '@/lib/auth-context';
 import { useAppStore } from '@/lib/store';
 import ShareSaathiChat from '@/components/chat/ShareSaathiChat';
-
+import NotificationsMenu from '@/components/ui/NotificationsMenu';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <Suspense fallback={
@@ -152,10 +152,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <div className="flex items-center gap-4 md:gap-6">
-                        <button className="relative p-2 text-muted hover:text-foreground rounded-full hover:bg-surface transition-colors">
-                            <Icon name="BellIcon" size={20} />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
-                        </button>
+                        <NotificationsMenu />
 
                         <div className="h-8 w-px bg-border" />
 

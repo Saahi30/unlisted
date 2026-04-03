@@ -50,6 +50,7 @@ function AdminDashboardContent() {
     const [isAddMode, setIsAddMode] = useState(false);
 
     const [formValues, setFormValues] = useState<Partial<Company>>({});
+    const [companyDetails, setCompanyDetails] = useState({ overview: '', financials: '', funding: '', faq: '' });
 
     // Delivery confirmation state for admin overrides
     const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
@@ -83,7 +84,7 @@ function AdminDashboardContent() {
     const [isBlogAddMode, setIsBlogAddMode] = useState(false);
     const [blogFormValues, setBlogFormValues] = useState<any>({});
     const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
-    const [aiBlogPrompt, setAiBlogPrompt] = useState({ topic: '', keywords: '' });
+    const [aiBlogPrompt, setAiBlogPrompt] = useState({ topic: '', keywords: '', referenceText: '', length: '500', creativity: 0.6 });
 
     // Historical prices management
     const { historicalPrices, addHistoricalPrice, removeHistoricalPrice } = useAppStore();
@@ -96,6 +97,16 @@ function AdminDashboardContent() {
         setIsAddMode(false);
         setEditingCompany(comp);
         setFormValues({ ...comp });
+        let details = { overview: comp.description || '', financials: '', funding: '', faq: '' };
+        if (comp.aiContext) {
+            try { 
+                const parsed = JSON.parse(comp.aiContext);
+                if (typeof parsed === 'object') details = { ...details, ...parsed };
+            } catch (e) {
+                details.overview = comp.aiContext;
+            }
+        }
+        setCompanyDetails(details);
     };
 
     const openAdd = () => {
@@ -113,6 +124,7 @@ function AdminDashboardContent() {
             category: '',
             minInvest: '₹50,000'
         });
+        setCompanyDetails({ overview: '', financials: '', funding: '', faq: '' });
     };
 
     const handleSave = () => {
@@ -128,7 +140,7 @@ function AdminDashboardContent() {
                 currentAskPrice: formValues.currentAskPrice || 0,
                 currentBidPrice: (formValues.currentAskPrice || 0) * 0.95,
                 description: formValues.description || '',
-                aiContext: formValues.aiContext || '',
+                aiContext: JSON.stringify(companyDetails),
                 isFeatured: formValues.isFeatured || false,
                 category: formValues.category || '',
                 change: formValues.change || '+0%',
@@ -139,7 +151,7 @@ function AdminDashboardContent() {
             };
             addCompany(newCompany);
         } else {
-            updateCompany({ ...editingCompany, ...formValues } as Company);
+            updateCompany({ ...editingCompany, ...formValues, aiContext: JSON.stringify(companyDetails) } as Company);
         }
         setEditingCompany(null);
     };
@@ -217,7 +229,7 @@ function AdminDashboardContent() {
             status: 'draft',
             views: 0
         });
-        setAiBlogPrompt({ topic: '', keywords: '' });
+        setAiBlogPrompt({ topic: '', keywords: '', referenceText: '', length: '500', creativity: 0.6 });
     };
 
     const handleAiGenerateBlog = async () => {
@@ -1045,7 +1057,7 @@ function AdminDashboardContent() {
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-semibold text-foreground mb-1 block">Company Name</label>
@@ -1131,17 +1143,49 @@ function AdminDashboardContent() {
                                 />
                             </div>
 
-                            <div>
-                                <label className="text-sm font-semibold text-amber-600 mb-1 flex items-center gap-2">
-                                    <Icon name="CpuChipIcon" size={16} variant="solid" /> ShareX AI Context
-                                </label>
-                                <textarea
-                                    value={formValues.aiContext || ''}
-                                    placeholder="Add intelligence context for ShareX AI... e.g., upcoming product launches, secret valuation metrics, recent funding rounds."
-                                    onChange={e => setFormValues({ ...formValues, aiContext: e.target.value })}
-                                    className="w-full h-24 p-2.5 text-sm border border-amber-200 rounded-lg bg-amber-50/30 focus-visible:ring-1 focus-visible:ring-amber-400 outline-none resize-none placeholder:text-amber-600/50"
-                                />
-                                <p className="text-[10px] text-muted mt-1">This information is provided to the AI to answer user queries about this company.</p>
+                            <div className="pt-4 border-t border-border flex flex-col gap-4">
+                                <h4 className="text-sm font-bold text-foreground mb-2">Detailed Sections (Markdown Supported)</h4>
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Overview / AI Context</label>
+                                    <textarea
+                                        value={companyDetails.overview}
+                                        placeholder="Add general overview and intelligence context for ShareX AI..."
+                                        onChange={e => setCompanyDetails({ ...companyDetails, overview: e.target.value })}
+                                        className="w-full h-24 p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
+                                    />
+                                    <p className="text-[10px] text-muted mt-1">This context is used for the Overview tab and by the AI agent.</p>
+                                </div>
+                                
+                                <div>
+                                    <label className="text-sm font-semibold text-foreground mb-1 block">Financials</label>
+                                    <textarea
+                                        value={companyDetails.financials}
+                                        placeholder="Revenue, EBITDA, PAT, EPS..."
+                                        onChange={e => setCompanyDetails({ ...companyDetails, financials: e.target.value })}
+                                        className="w-full h-24 p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
+                                    />
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-semibold text-foreground mb-1 block">Funding & Peers</label>
+                                        <textarea
+                                            value={companyDetails.funding}
+                                            placeholder="Funding rounds, competitors..."
+                                            onChange={e => setCompanyDetails({ ...companyDetails, funding: e.target.value })}
+                                            className="w-full h-24 p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-semibold text-foreground mb-1 block">FAQs</label>
+                                        <textarea
+                                            value={companyDetails.faq}
+                                            placeholder="Frequently asked questions..."
+                                            onChange={e => setCompanyDetails({ ...companyDetails, faq: e.target.value })}
+                                            className="w-full h-24 p-2.5 text-sm border border-border rounded-lg bg-surface/30 focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="pt-4 border-t border-border flex flex-col gap-4">
@@ -1571,14 +1615,46 @@ function AdminDashboardContent() {
                                             ) : 'Generate Blog'}
                                         </Button>
                                     </div>
-                                    <Input
-                                        placeholder="Specific Keywords: e.g. EBITDA multiples, DRHP, anchor investors"
-                                        value={aiBlogPrompt.keywords}
-                                        onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, keywords: e.target.value })}
-                                        className="bg-white border-primary/10 text-xs h-8"
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Input
+                                                placeholder="Specific Keywords: e.g. EBITDA, DRHP"
+                                                value={aiBlogPrompt.keywords}
+                                                onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, keywords: e.target.value })}
+                                                className="bg-white border-primary/10 text-xs h-8"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <select 
+                                                className="w-full text-xs h-8 border border-primary/10 rounded-lg px-2 bg-white"
+                                                value={aiBlogPrompt.length}
+                                                onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, length: e.target.value })}
+                                            >
+                                                <option value="300">Short (~300 Words)</option>
+                                                <option value="500">Medium (~500 Words)</option>
+                                                <option value="1000">In-Depth (~1000 Words)</option>
+                                                <option value="1500">Comprehensive (~1500 Words)</option>
+                                            </select>
+                                            <select 
+                                                className="w-full text-xs h-8 border border-primary/10 rounded-lg px-2 bg-white"
+                                                value={aiBlogPrompt.creativity}
+                                                onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, creativity: parseFloat(e.target.value) })}
+                                            >
+                                                <option value="0.2">Strict & Factual</option>
+                                                <option value="0.6">Balanced Analyst</option>
+                                                <option value="0.9">Engaging Journalist</option>
+                                                <option value="1.2">Highly Creative Speculation</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <textarea
+                                        placeholder="Reference text, facts, or source article to ground the generation..."
+                                        value={aiBlogPrompt.referenceText}
+                                        onChange={e => setAiBlogPrompt({ ...aiBlogPrompt, referenceText: e.target.value })}
+                                        className="w-full h-24 p-2 text-xs border border-primary/10 rounded-lg bg-white focus-visible:ring-1 focus-visible:ring-primary outline-none resize-none"
                                     />
                                     <p className="text-[10px] text-muted leading-relaxed">
-                                        Our AI adopts a senior financial research persona. It will generate a title, slug, summary, and deep-dive technical content.
+                                        Our AI adopts a senior financial research persona. It will generate a title, slug, summary, and deep-dive technical content based on the details provided.
                                     </p>
                                 </div>
                             </div>

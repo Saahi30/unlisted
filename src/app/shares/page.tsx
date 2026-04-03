@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft } from 'lucide-react';
 
 export default function SharesPage() {
-    const { companies } = useAppStore();
+    const { companies, fetchInitialData } = useAppStore();
+
+    useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
     const [selectedSector, setSelectedSector] = useState<string>('All');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
 

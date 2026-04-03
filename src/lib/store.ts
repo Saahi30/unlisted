@@ -286,6 +286,19 @@ export const useAppStore = create<AppState>()(
                     img_alt: company.imgAlt,
                     is_featured: company.isFeatured
                 }]);
+
+                // Automatically generate a new graph data point for today
+                const today = new Date().toISOString().split('T')[0];
+                const newPriceId = uuidv4();
+                const newPrice = { id: newPriceId, companyId: id, priceDate: today, priceValue: company.currentAskPrice };
+                set((state) => ({ historicalPrices: [...state.historicalPrices, newPrice] }));
+                
+                await supabase.from('company_historical_prices').insert([{
+                    id: newPriceId,
+                    company_id: id,
+                    price_date: today,
+                    price_value: company.currentAskPrice
+                }]);
             },
             updateCompany: async (company) => {
                 set((state) => ({
@@ -309,6 +322,36 @@ export const useAppStore = create<AppState>()(
                     img_alt: company.imgAlt,
                     is_featured: company.isFeatured
                 }).eq('id', company.id);
+
+                // Auto-sync graph: If the company ask price changed, document it historically for today's graph
+                const today = new Date().toISOString().split('T')[0];
+                const historicalPrices = get().historicalPrices;
+                const existingPointToday = historicalPrices.find(p => p.companyId === company.id && p.priceDate === today);
+                
+                if (company.currentAskPrice > 0) {
+                    if (existingPointToday) {
+                        // Update today's graph point with the latest value
+                        set((state) => ({
+                            historicalPrices: state.historicalPrices.map(p => 
+                                p.id === existingPointToday.id ? { ...p, priceValue: company.currentAskPrice } : p
+                            )
+                        }));
+                        await supabase.from('company_historical_prices')
+                            .update({ price_value: company.currentAskPrice })
+                            .eq('id', existingPointToday.id);
+                    } else {
+                        // Create a new point for the graph
+                        const newPriceId = uuidv4();
+                        const newPrice = { id: newPriceId, companyId: company.id, priceDate: today, priceValue: company.currentAskPrice };
+                        set((state) => ({ historicalPrices: [...state.historicalPrices, newPrice] }));
+                        await supabase.from('company_historical_prices').insert([{
+                            id: newPriceId,
+                            company_id: company.id,
+                            price_date: today,
+                            price_value: company.currentAskPrice
+                        }]);
+                    }
+                }
             },
             removeCompany: async (id) => {
                 set((state) => ({
@@ -606,10 +649,12 @@ export const useAppStore = create<AppState>()(
         }),
         {
             name: 'sharesaathi-storage',
-            version: 1, // trigger hydration correctly
+            version: 3, // bump to clear cached mock companies; now loads live from Supabase
             partialize: (state) => ({
                 orders: state.orders,
                 leads: state.leads,
+                companies: state.companies,
+                historicalPrices: state.historicalPrices,
                 dematRequests: state.dematRequests,
                 rmTargets: state.rmTargets,
                 users: state.users,

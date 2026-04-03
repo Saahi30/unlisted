@@ -21,7 +21,7 @@ export interface Company {
 
 export const MOCK_COMPANIES: Company[] = [
     {
-        id: "comp_1",
+        id: "11111111-1111-4111-a111-111111111111",
         name: "Swiggy Ltd.",
         sector: "FoodTech",
         valuation: 85000,
@@ -38,7 +38,7 @@ export const MOCK_COMPANIES: Company[] = [
         isFeatured: true
     },
     {
-        id: "comp_2",
+        id: "22222222-2222-4222-a222-222222222222",
         name: "Groww",
         sector: "FinTech",
         valuation: 25000,
@@ -55,7 +55,7 @@ export const MOCK_COMPANIES: Company[] = [
         isFeatured: true
     },
     {
-        id: "comp_3",
+        id: "33333333-3333-4333-a333-333333333333",
         name: "Razorpay",
         sector: "FinTech",
         valuation: 60000,
@@ -72,7 +72,7 @@ export const MOCK_COMPANIES: Company[] = [
         isFeatured: true
     },
     {
-        id: "comp_5",
+        id: "55555555-5555-4555-a555-555555555555",
         name: "Zepto",
         sector: "Quick Commerce",
         valuation: 51229,
@@ -89,7 +89,7 @@ export const MOCK_COMPANIES: Company[] = [
         isFeatured: true
     },
     {
-        id: "comp_4",
+        id: "44444444-4444-4444-a444-444444444444",
         name: "Postman",
         sector: "SaaS",
         valuation: 45000,
@@ -108,14 +108,14 @@ export const MOCK_COMPANIES: Company[] = [
 ];
 
 export const MOCK_HISTORICAL_PRICES = [
-    { id: 'hp_1', companyId: 'comp_5', priceDate: '2026-02-01', priceValue: 58 },
-    { id: 'hp_2', companyId: 'comp_5', priceDate: '2026-02-08', priceValue: 56 },
-    { id: 'hp_3', companyId: 'comp_5', priceDate: '2026-02-15', priceValue: 56 },
-    { id: 'hp_4', companyId: 'comp_5', priceDate: '2026-02-22', priceValue: 56 },
-    { id: 'hp_5', companyId: 'comp_5', priceDate: '2026-03-01', priceValue: 56 },
-    { id: 'hp_6', companyId: 'comp_5', priceDate: '2026-03-02', priceValue: 54 },
-    { id: 'hp_7', companyId: 'comp_5', priceDate: '2026-03-08', priceValue: 54 },
-    { id: 'hp_8', companyId: 'comp_5', priceDate: '2026-03-14', priceValue: 54 }
+    { id: 'hp_1', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-02-01', priceValue: 58 },
+    { id: 'hp_2', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-02-08', priceValue: 56 },
+    { id: 'hp_3', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-02-15', priceValue: 56 },
+    { id: 'hp_4', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-02-22', priceValue: 56 },
+    { id: 'hp_5', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-03-01', priceValue: 56 },
+    { id: 'hp_6', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-03-02', priceValue: 54 },
+    { id: 'hp_7', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-03-08', priceValue: 54 },
+    { id: 'hp_8', companyId: '55555555-5555-4555-a555-555555555555', priceDate: '2026-03-14', priceValue: 54 }
 ];
 
 export const HOME_PAGE_DATA = {
@@ -149,7 +149,7 @@ export interface Order {
 export const MOCK_ORDERS: Order[] = [
     {
         id: "ord_1",
-        companyId: "comp_1",
+        companyId: "11111111-1111-4111-a111-111111111111",
         userId: "cust_1",
         quantity: 100,
         price: 450,
@@ -159,7 +159,7 @@ export const MOCK_ORDERS: Order[] = [
     },
     {
         id: "ord_2",
-        companyId: "comp_2",
+        companyId: "22222222-2222-4222-a222-222222222222",
         userId: "cust_1",
         quantity: 50,
         price: 1250,
@@ -169,7 +169,7 @@ export const MOCK_ORDERS: Order[] = [
     },
     {
         id: "ord_3",
-        companyId: "comp_3",
+        companyId: "33333333-3333-4333-a333-333333333333",
         userId: "user_2",
         quantity: 500,
         price: 3200,
@@ -179,7 +179,7 @@ export const MOCK_ORDERS: Order[] = [
     },
     {
         id: "ord_4",
-        companyId: "comp_4",
+        companyId: "44444444-4444-4444-a444-444444444444",
         userId: "user_3",
         quantity: 20,
         price: 5400,

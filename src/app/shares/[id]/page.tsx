@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, TrendingUp, ShieldAlert, LineChart } from 'lucide-react';
 import CompanyPriceChart from '@/components/CompanyPriceChart';
-import ZeptoDetails from '@/components/ZeptoDetails';
+import CompanyDetails from '@/components/CompanyDetails';
 
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -93,9 +93,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                         )}
                     </Card>
 
-                    {company.name.toLowerCase().includes('zepto') && (
-                        <ZeptoDetails />
-                    )}
+                    <CompanyDetails company={company} />
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                         <h4 className="flex items-center font-semibold text-amber-900 mb-2">

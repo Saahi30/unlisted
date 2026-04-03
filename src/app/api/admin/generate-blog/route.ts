@@ -5,9 +5,9 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
-        const { topic, keywords } = await req.json();
+        const { topic, keywords, referenceText, length, creativity } = await req.json();
 
-        const systemPrompt = `You are a senior equity research analyst and financial journalist specializing in the Indian unlisted and pre-IPO markets. 
+        let systemPrompt = `You are a senior equity research analyst and financial journalist specializing in the Indian unlisted and pre-IPO markets. 
 Your goal is to write a high-impact, professional, and deeply analytical blog post for a premium investment platform called ShareSaathi.
 
 **CRITICAL: DO NOT LOOK LIKE AI.** 
@@ -19,7 +19,7 @@ Your goal is to write a high-impact, professional, and deeply analytical blog po
 Structure your response as a JSON object with:
 - title: A sharp, news-driven title (e.g., "The Swiggy Secondary Market Surge: Analyzing the Pre-IPO FOMO")
 - excerpt: A 2-sentence sophisticated summary for the feed.
-- content: The full article (at least 500 words). Use standard line breaks. 
+- content: The full article (around ${length || '500'} words). **CRITICAL:** Use the escaped string literal "\\n" for line breaks. Do NOT use actual unescaped newlines inside the JSON strings!
 - slug: A URL-friendly slug based on the title.
 
 For the article content:
@@ -31,17 +31,27 @@ Topic: ${topic}
 Keywords: ${keywords || 'none'}
 `;
 
+        if (referenceText && referenceText.trim().length > 0) {
+            systemPrompt += `\n\nReference Material / Facts to ground the article in:\n${referenceText}\n`;
+        }
+
         const { text } = await generateText({
             model: groq('llama-3.3-70b-versatile'),
+            temperature: creativity || 0.6,
             system: systemPrompt,
-            prompt: `Generate a full blog post in JSON format about: ${topic}. Keywords to include: ${keywords || 'none'}. Output only the JSON object.`,
+            prompt: `Generate a full blog post in JSON format about: ${topic}. Keywords to include: ${keywords || 'none'}. Target word count is around ${length || '500'} words. Remember to deeply incorporate any Reference Material provided. Output ONLY a valid JSON object containing exactly the 4 required fields. Do NOT include ANY text outside the JSON object.`,
         });
 
         // Attempt to parse JSON. Sometimes LLMs include markdown backticks.
         let jsonResponse;
         try {
             const cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
-            jsonResponse = JSON.parse(cleanText);
+            const match = cleanText.match(/\{[\s\S]*\}/);
+            if (match) {
+                jsonResponse = JSON.parse(match[0]);
+            } else {
+                jsonResponse = JSON.parse(cleanText);
+            }
         } catch (e) {
             console.error("Failed to parse AI response as JSON:", text);
             return new Response(JSON.stringify({ error: "Failed to generate valid JSON", raw: text }), { status: 500 });

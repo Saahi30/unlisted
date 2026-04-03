@@ -36,16 +36,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function CompanyPriceChart({ data, color = '#E63946' }: CompanyPriceChartProps) {
     const [selectedSpan, setSelectedSpan] = useState('Max');
 
-    if (!data || data.length === 0) {
-        return (
-            <div className="h-64 w-full flex items-center justify-center bg-surface/30 rounded-xl border border-dashed border-border">
-                <p className="text-sm text-muted">No historical price data available yet.</p>
-            </div>
-        );
-    }
-
     // Sort data by date
     const sortedData = useMemo(() => {
+        if (!data) return [];
         return [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [data]);
 
@@ -104,6 +97,14 @@ export default function CompanyPriceChart({ data, color = '#E63946' }: CompanyPr
     }, [sortedData, selectedSpan]);
 
     const spans = ['1D', '1W', '1M', '3M', '6M', '1Y', '3Y', '5Y', 'Max'];
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="h-64 w-full flex items-center justify-center bg-surface/30 rounded-xl border border-dashed border-border mb-8">
+                <p className="text-sm text-muted">No historical price data available yet.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full">
