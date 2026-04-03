@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft } from 'lucide-react';
+import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft, Search, X } from 'lucide-react';
 
 export default function SharesPage() {
     const { companies, fetchInitialData } = useAppStore();
@@ -15,6 +15,7 @@ export default function SharesPage() {
     }, [fetchInitialData]);
     const [selectedSector, setSelectedSector] = useState<string>('All');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     const sectors = useMemo(() => {
         const uniqueSectors = Array.from(new Set(companies.map(c => c.sector)));
@@ -23,6 +24,11 @@ export default function SharesPage() {
 
     const filteredAndSortedCompanies = useMemo(() => {
         let result = [...companies];
+
+        // Filter by name search
+        if (searchQuery.trim()) {
+            result = result.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
 
         // Filter by sector
         if (selectedSector !== 'All') {
@@ -37,7 +43,7 @@ export default function SharesPage() {
         }
 
         return result;
-    }, [companies, selectedSector, sortOrder]);
+    }, [companies, searchQuery, selectedSector, sortOrder]);
 
     const toggleSort = () => {
         if (sortOrder === 'none') setSortOrder('desc');
@@ -56,6 +62,21 @@ export default function SharesPage() {
                     <p className="text-slate-600">Browse and invest in high-growth private companies and pre-IPO equities.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search by name..."
+                            className="bg-white border border-slate-200 rounded-md pl-9 pr-8 py-2 text-sm font-medium hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all h-10 w-52"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
                     <div className="relative">
                         <select
                             value={selectedSector}
@@ -80,12 +101,13 @@ export default function SharesPage() {
                         {sortOrder === 'none' ? 'Sort by Valuation' : sortOrder === 'asc' ? 'Valuation: Low to High' : 'Valuation: High to Low'}
                     </Button>
 
-                    {(selectedSector !== 'All' || sortOrder !== 'none') && (
+                    {(selectedSector !== 'All' || sortOrder !== 'none' || searchQuery) && (
                         <Button
                             variant="ghost"
                             onClick={() => {
                                 setSelectedSector('All');
                                 setSortOrder('none');
+                                setSearchQuery('');
                             }}
                             className="text-slate-500 text-xs h-10"
                         >
@@ -159,6 +181,7 @@ export default function SharesPage() {
                         onClick={() => {
                             setSelectedSector('All');
                             setSortOrder('none');
+                            setSearchQuery('');
                         }}
                         className="mt-4 text-blue-600"
                     >
