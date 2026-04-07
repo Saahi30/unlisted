@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "portfolio": "My Portfolio",
+    "orders": "My Orders",
+    "watchlist": "Watchlist",
+    "kyc": "KYC",
+    "referrals": "Refer & Earn",
+    "dematerialize": "Dematerialize",
+    "explore": "Explore Shares",
+    "tax": "Tax Report",
+    "signOut": "Sign Out"
+  },
+  "dashboard": {
+    "welcome": "Welcome Back",
+    "todayUpdate": "Here's your update for today.",
+    "totalInvested": "Total Invested Value",
+    "activeHoldings": "Active Holdings",
+    "pendingTransfers": "Pending Transfers",
+    "activeOrders": "Active Orders & Transfers",
+    "portfolioHoldings": "Portfolio Holdings",
+    "noOrders": "No active orders or requests found.",
+    "noHoldings": "No holdings yet.",
+    "exploreListing": "Explore Listings"
+  },
+  "shares": {
+    "catalog": "Unlisted Shares Catalog",
+    "catalogDesc": "Browse and invest in high-growth private companies and pre-IPO equities.",
+    "searchByName": "Search by name...",
+    "allSectors": "All Sectors",
+    "sortByValuation": "Sort by Valuation",
+    "compare": "Compare",
+    "ipoTracker": "IPO Tracker",
+    "buyShares": "Buy Shares",
+    "viewDetails": "View Details",
+    "noCompanies": "No companies found",
+    "resetFilters": "Reset Filters"
+  },
+  "common": {
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "previous": "Previous",
+    "next": "Next",
+    "all": "All",
+    "disclaimer": "Unlisted shares are not traded on any stock exchange and carry higher risk. Prices are indicative and may vary."
+  }
+}

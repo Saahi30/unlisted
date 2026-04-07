@@ -47,6 +47,27 @@ export default function AgentEarningsTab({ kycData }: { kycData: any }) {
             return;
         }
 
+        if (amount < 500) {
+            alert('Minimum withdrawal amount is ₹500.');
+            return;
+        }
+
+        // Rate limiting: check for pending withdrawals and recent requests
+        const pendingWithdrawals = withdrawHistory.filter(w => w.status === 'pending');
+        if (pendingWithdrawals.length >= 2) {
+            alert('You already have 2 pending withdrawal requests. Please wait for them to be processed before submitting a new one.');
+            return;
+        }
+
+        const recentWithdrawals = withdrawHistory.filter(w => {
+            const diff = Date.now() - new Date(w.created_at).getTime();
+            return diff < 24 * 60 * 60 * 1000; // 24 hours
+        });
+        if (recentWithdrawals.length >= 3) {
+            alert('You can submit a maximum of 3 withdrawal requests per day. Please try again tomorrow.');
+            return;
+        }
+
         setIsWithdrawing(true);
         const { error } = await supabase.from('agent_withdrawals').insert({
             agent_id: user.id,

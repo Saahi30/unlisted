@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useAuth, UserRole, User } from '@/lib/auth-context';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
-import { createClient } from '@/utils/supabase/client';
-
 export default function LoginPage() {
     const { login, isLoading: contextLoading } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
@@ -16,66 +14,49 @@ export default function LoginPage() {
     const [emailOtp, setEmailOtp] = useState('');
     const [phoneOtp, setPhoneOtp] = useState('');
     const [otpError, setOtpError] = useState('');
-    const supabase = createClient();
 
     if (contextLoading) return null;
+
+    // Hardcoded credentials for each role (real auth will be added later)
+    const credentials: Record<string, { password: string; role: UserRole }> = {
+        'customer@sharesaathi.com': { password: 'customer123', role: 'customer' },
+        'sales@sharesaathi.com': { password: 'sales123', role: 'rm' },
+        'agent@sharesaathi.com': { password: 'agent123', role: 'agent' },
+        'manager@sharesaathi.com': { password: 'manager123', role: 'staffmanager' },
+        'admin@sharesaathi.com': { password: 'admin123', role: 'admin' },
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setAuthLoading(true);
         setOtpError('');
 
-        try {
-            if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email: form.email,
-                    password: form.password,
-                });
-
-                if (error) {
-                    setOtpError(error.message);
-                } else {
-                    login('customer');
-                }
+        if (isLogin) {
+            const cred = credentials[form.email.toLowerCase()];
+            if (cred && form.password === cred.password) {
+                login(cred.role);
             } else {
-                if (!otpStep) {
-                    // Simulate sending OTPs
-                    setTimeout(() => {
-                        setOtpStep(true);
-                        setAuthLoading(false);
-                    }, 800);
-                    return;
-                }
-
-                if (emailOtp !== '111111' || phoneOtp !== '222222') {
-                    setOtpError("Invalid verification codes. (Use 111111 for Email and 222222 for Phone)");
+                setOtpError('Invalid email or password.');
+            }
+            setAuthLoading(false);
+        } else {
+            if (!otpStep) {
+                setTimeout(() => {
+                    setOtpStep(true);
                     setAuthLoading(false);
-                    return;
-                }
-
-                const { error } = await supabase.auth.signUp({
-                    email: form.email,
-                    password: form.password,
-                    options: {
-                        data: {
-                            name: form.name,
-                            phone: form.phone,
-                            role: 'customer'
-                        }
-                    }
-                });
-
-                if (error) {
-                    setOtpError(error.message);
-                } else {
-                    setIsLogin(true);
-                    setOtpStep(false);
-                }
+                }, 800);
+                return;
             }
-        } finally {
-            if (!otpStep || (otpStep && emailOtp === '111111' && phoneOtp === '222222')) {
+
+            if (emailOtp !== '111111' || phoneOtp !== '222222') {
+                setOtpError("Invalid verification codes. (Use 111111 for Email and 222222 for Phone)");
                 setAuthLoading(false);
+                return;
             }
+
+            // Sign up just logs in as customer for now
+            login('customer');
+            setAuthLoading(false);
         }
     };
 
@@ -201,14 +182,24 @@ export default function LoginPage() {
                     )}
 
                     <div className="mt-8 pt-6 border-t border-border">
-                        <p className="text-xs text-center text-muted font-medium mb-3">SIMULATOR QUICK ACCESS</p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            <button onClick={(e) => { e.preventDefault(); login('customer'); }} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md text-xs font-bold hover:bg-blue-100">Customer</button>
-                            <button onClick={(e) => { e.preventDefault(); login('rm'); }} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-md text-xs font-bold hover:bg-emerald-100">Sales RM</button>
-                            <button onClick={(e) => { e.preventDefault(); login('agent'); }} className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-md text-xs font-bold hover:bg-amber-100">Partner Agent</button>
-                            <button onClick={(e) => { e.preventDefault(); login('staffmanager'); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-xs font-bold hover:bg-indigo-100">Manager</button>
-                            <button onClick={(e) => { e.preventDefault(); login('admin'); }} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-md text-xs font-bold hover:bg-purple-100">Admin</button>
+                        <p className="text-xs text-center text-muted font-medium mb-3">TEST CREDENTIALS</p>
+                        <div className="space-y-1.5 text-[11px] text-muted">
+                            {Object.entries(credentials).map(([email, { role }]) => (
+                                <button
+                                    key={email}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        const cred = credentials[email];
+                                        setForm({ ...form, email, password: cred.password });
+                                    }}
+                                    className="w-full flex justify-between items-center px-3 py-2 rounded-lg hover:bg-surface/80 transition-colors text-left"
+                                >
+                                    <span className="font-medium text-foreground">{role === 'rm' ? 'Sales RM' : role === 'staffmanager' ? 'Manager' : role.charAt(0).toUpperCase() + role.slice(1)}</span>
+                                    <span className="font-mono text-muted">{email}</span>
+                                </button>
+                            ))}
                         </div>
+                        <p className="text-[10px] text-muted/60 text-center mt-3">Click a role to auto-fill credentials, then sign in</p>
                     </div>
                 </div>
             </main>

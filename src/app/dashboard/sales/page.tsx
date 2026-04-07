@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/AppIcon';
 import { useAppStore, OrderStatus, User, ExtendedOrder } from '@/lib/store';
 import { useAuth } from '@/lib/auth-context';
+import { uploadPaymentProof } from '@/lib/upload';
+import { logAudit } from '@/lib/audit';
+import RmEscalationView from '@/components/manager/RmEscalationView';
 
 export default function SalesDashboardPage() {
     return (
@@ -26,11 +29,11 @@ function SalesDashboardContent() {
     const { orders, leads, updateOrderStatus, addOrderNote, addLeadNote, updateLead, users } = useAppStore();
     const { user: authUser } = useAuth();
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'orders' | 'leads' | 'clients'>('leads');
+    const [activeTab, setActiveTab] = useState<'orders' | 'leads' | 'clients' | 'escalations'>('leads');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'orders' || tab === 'leads' || tab === 'clients') {
+        if (tab === 'orders' || tab === 'leads' || tab === 'clients' || tab === 'escalations') {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -51,6 +54,8 @@ function SalesDashboardContent() {
 
     // Upload Proof logic
     const [uploadOrderId, setUploadOrderId] = useState<string | null>(null);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     const getUserName = (id: string) => {
         const u = users.find(user => user.id === id);
@@ -101,12 +106,31 @@ function SalesDashboardContent() {
         setGeneratedLink(link);
     };
 
-    const handleUploadProofSubmit = () => {
-        if (uploadOrderId) {
-            updateOrderStatus(uploadOrderId, 'under_process', null, 'uploaded_mock_file.pdf');
-            addOrderNote(uploadOrderId, 'Uploaded payment proof successfully.');
+    const handleUploadProofSubmit = async () => {
+        if (!uploadOrderId || !uploadFile) return;
+        setUploading(true);
+        try {
+            const storagePath = await uploadPaymentProof(uploadFile, uploadOrderId);
+            if (storagePath) {
+                updateOrderStatus(uploadOrderId, 'under_process', null, storagePath);
+                addOrderNote(uploadOrderId, `Payment proof uploaded: ${uploadFile.name}`);
+                logAudit({
+                    entityType: 'order',
+                    entityId: uploadOrderId,
+                    action: 'file_uploaded',
+                    newValue: storagePath,
+                    performedByName: authUser?.name || 'RM',
+                    performedByRole: 'rm',
+                    metadata: { fileName: uploadFile.name }
+                });
+            } else {
+                addOrderNote(uploadOrderId, 'Payment proof upload failed — please retry.');
+            }
+        } finally {
+            setUploading(false);
+            setUploadFile(null);
+            setUploadOrderId(null);
         }
-        setUploadOrderId(null);
     };
 
     const myOrders = orders.filter(o => {
@@ -164,6 +188,12 @@ function SalesDashboardContent() {
                     className={`px-4 py-3 text-sm font-semibold tracking-wide uppercase whitespace-nowrap border-b-2 transition-colors ${activeTab === 'orders' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-foreground'}`}
                 >
                     Order Pipeline
+                </button>
+                <button
+                    onClick={() => setActiveTab('escalations')}
+                    className={`px-4 py-3 text-sm font-semibold tracking-wide uppercase whitespace-nowrap border-b-2 transition-colors ${activeTab === 'escalations' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-foreground'}`}
+                >
+                    Escalations
                 </button>
             </div>
 
@@ -470,6 +500,11 @@ function SalesDashboardContent() {
                 </div>
             )}
 
+            {/* Escalations Tab */}
+            {activeTab === 'escalations' && (
+                <RmEscalationView rmId={authUser?.id || ''} rmName={authUser?.name || ''} users={users} />
+            )}
+
             {/* Deal Detail Dialog */}
             {selectedDealId && selectedDeal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -590,11 +625,26 @@ function SalesDashboardContent() {
                         </div>
                         <div className="p-6">
                             <p className="text-sm text-muted mb-4 block">Please upload the RTGS/NEFT proof provided by the customer.</p>
-                            <Input type="file" className="cursor-pointer" />
+                            <Input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,application/pdf"
+                                className="cursor-pointer"
+                                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                            />
+                            {uploadFile && (
+                                <p className="text-xs text-muted mt-2">Selected: {uploadFile.name} ({(uploadFile.size / 1024).toFixed(0)} KB)</p>
+                            )}
                         </div>
                         <div className="px-6 py-4 border-t border-border bg-surface/30 flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => setUploadOrderId(null)}>Cancel</Button>
-                            <Button variant="default" className="bg-primary hover:bg-primary/90 text-white" onClick={handleUploadProofSubmit}>Raise Transfer Request</Button>
+                            <Button variant="outline" onClick={() => { setUploadOrderId(null); setUploadFile(null); }}>Cancel</Button>
+                            <Button
+                                variant="default"
+                                className="bg-primary hover:bg-primary/90 text-white"
+                                onClick={handleUploadProofSubmit}
+                                disabled={!uploadFile || uploading}
+                            >
+                                {uploading ? 'Uploading...' : 'Raise Transfer Request'}
+                            </Button>
                         </div>
                     </div>
                 </div>

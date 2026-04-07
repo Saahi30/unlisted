@@ -1,10 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-// Removed useChat import
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth-context';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/utils/supabase/client';
+
+interface Conversation {
+    id: string;
+    title: string;
+    updated_at: string;
+}
 
 export default function ShareSaathiChat() {
     const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +24,75 @@ export default function ShareSaathiChat() {
 
     const [messages, setMessages] = useState<{ id: string, role: 'user' | 'assistant', content: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Chat history state
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const [showHistory, setShowHistory] = useState(false);
+
+    // Load conversations list
+    useEffect(() => {
+        if (!user || !isOpen) return;
+        const loadConversations = async () => {
+            const supabase = createClient();
+            const { data } = await supabase
+                .from('chat_conversations')
+                .select('id, title, updated_at')
+                .eq('user_id', user.id)
+                .order('updated_at', { ascending: false })
+                .limit(20);
+            if (data) setConversations(data);
+        };
+        loadConversations();
+    }, [user, isOpen]);
+
+    const loadConversation = async (convId: string) => {
+        const supabase = createClient();
+        const { data } = await supabase
+            .from('chat_messages')
+            .select('id, role, content')
+            .eq('conversation_id', convId)
+            .order('created_at', { ascending: true });
+        if (data) {
+            setMessages(data.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+            setActiveConversationId(convId);
+            setShowHistory(false);
+        }
+    };
+
+    const startNewConversation = () => {
+        setMessages([]);
+        setActiveConversationId(null);
+        setShowHistory(false);
+    };
+
+    const saveMessages = async (userMsg: string, assistantMsg: string) => {
+        if (!user) return;
+        const supabase = createClient();
+
+        let convId = activeConversationId;
+        if (!convId) {
+            const title = userMsg.substring(0, 50) + (userMsg.length > 50 ? '...' : '');
+            const { data } = await supabase
+                .from('chat_conversations')
+                .insert({ user_id: user.id, title, company_id: selectedCompanyId === 'general' ? null : selectedCompanyId })
+                .select('id')
+                .single();
+            if (data) {
+                convId = data.id;
+                setActiveConversationId(convId);
+                setConversations(prev => [{ id: convId!, title, updated_at: new Date().toISOString() }, ...prev]);
+            }
+        }
+
+        if (convId) {
+            await supabase.from('chat_messages').insert([
+                { conversation_id: convId, role: 'user', content: userMsg },
+                { conversation_id: convId, role: 'assistant', content: assistantMsg },
+            ]);
+            await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', convId);
+        }
+    };
 
     // Listen for external chat triggers (e.g. from Dashboard Portfolio button)
     useEffect(() => {
@@ -80,6 +155,8 @@ export default function ShareSaathiChat() {
                     prev.map(m => m.id === assistantMsg.id ? { ...assistantMsg } : m)
                 );
             }
+            // Save to DB
+            saveMessages(userMsg.content, assistantMsg.content);
         } catch (error) {
             console.error("Chat error:", error);
         } finally {
@@ -105,9 +182,17 @@ export default function ShareSaathiChat() {
                                 <Icon name="CpuChipIcon" size={18} variant="solid" className="text-white/90" />
                                 <span className="font-bold tracking-tight">ShareX AI</span>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
-                                <Icon name="XMarkIcon" size={20} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => setShowHistory(!showHistory)} className="text-white/80 hover:text-white transition-colors p-1" title="Chat history">
+                                    <Icon name="ClockIcon" size={18} />
+                                </button>
+                                <button onClick={startNewConversation} className="text-white/80 hover:text-white transition-colors p-1" title="New chat">
+                                    <Icon name="PlusIcon" size={18} />
+                                </button>
+                                <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors p-1">
+                                    <Icon name="XMarkIcon" size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="mt-2">
@@ -123,6 +208,31 @@ export default function ShareSaathiChat() {
                             </select>
                         </div>
                     </div>
+
+                    {/* History sidebar */}
+                    {showHistory && (
+                        <div className="absolute inset-0 top-[100px] bg-background z-10 overflow-y-auto">
+                            <div className="p-3 border-b border-border">
+                                <button onClick={startNewConversation} className="w-full text-left px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors flex items-center gap-2">
+                                    <Icon name="PlusIcon" size={16} /> New Conversation
+                                </button>
+                            </div>
+                            <div className="divide-y divide-border/50">
+                                {conversations.length === 0 ? (
+                                    <div className="p-4 text-center text-xs text-muted">No conversations yet</div>
+                                ) : conversations.map(conv => (
+                                    <button
+                                        key={conv.id}
+                                        onClick={() => loadConversation(conv.id)}
+                                        className={`w-full text-left px-4 py-3 hover:bg-surface transition-colors ${activeConversationId === conv.id ? 'bg-surface' : ''}`}
+                                    >
+                                        <div className="text-sm font-medium text-foreground truncate">{conv.title}</div>
+                                        <div className="text-[10px] text-muted mt-0.5">{new Date(conv.updated_at).toLocaleDateString()}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Messages */}
                     <div className="flex-1 p-4 overflow-y-auto min-h-[300px] max-h-[400px] bg-surface/50 text-sm flex flex-col gap-3">

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft, Search, X } from 'lucide-react';
+import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft, Search, X, GitCompareArrows } from 'lucide-react';
 
 export default function SharesPage() {
     const { companies, fetchInitialData } = useAppStore();
@@ -99,6 +99,20 @@ export default function SharesPage() {
                     >
                         <ArrowUpDown className="h-4 w-4" />
                         {sortOrder === 'none' ? 'Sort by Valuation' : sortOrder === 'asc' ? 'Valuation: Low to High' : 'Valuation: High to Low'}
+                    </Button>
+
+                    <Button variant="outline" className="gap-2 h-10" asChild>
+                        <Link href="/shares/compare">
+                            <GitCompareArrows className="h-4 w-4" />
+                            Compare
+                        </Link>
+                    </Button>
+
+                    <Button variant="outline" className="gap-2 h-10" asChild>
+                        <Link href="/shares/ipo">
+                            <TrendingUp className="h-4 w-4" />
+                            IPO Tracker
+                        </Link>
                     </Button>
 
                     {(selectedSector !== 'All' || sortOrder !== 'none' || searchQuery) && (

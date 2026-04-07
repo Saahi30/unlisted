@@ -12,6 +12,35 @@
   --color-dark: #111820;
 }
 
+/* Dark mode overrides */
+.dark {
+  --color-primary: #C8A96E;
+  --color-accent: #1C2B3A;
+  --color-background: #111820;
+  --color-surface: #1A2332;
+  --color-border: #2A3442;
+  --color-muted: #8A9AAA;
+  --color-foreground: #E8E4DC;
+  --color-dark: #FAFAF8;
+}
+
+.dark ::selection {
+  background-color: var(--color-primary);
+  color: var(--color-background);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
 html {
   scroll-behavior: smooth;
 }

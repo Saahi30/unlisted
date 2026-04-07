@@ -13,6 +13,16 @@ import { UserRole } from '@/lib/auth-context';
 import AgentKycTab from '@/components/admin/AgentKycTab';
 import AgentSettingsConfig from '@/components/admin/AgentSettingsConfig';
 import AgentPayoutsTab from '@/components/admin/AgentPayoutsTab';
+import CustomerKycTab from '@/components/admin/CustomerKycTab';
+import FeedbackTab from '@/components/admin/FeedbackTab';
+import OrderManagementTab from '@/components/admin/OrderManagementTab';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import NotificationManagementTab from '@/components/admin/NotificationManagementTab';
+import LeadManagementTab from '@/components/admin/LeadManagementTab';
+import RmTargetTrackingTab from '@/components/admin/RmTargetTrackingTab';
+import AuditLogTab from '@/components/admin/AuditLogTab';
+import PriceHistoryCharts from '@/components/admin/PriceHistoryCharts';
+import AgentPerformanceTab from '@/components/admin/AgentPerformanceTab';
 
 export default function AdminDashboardPage() {
     return (
@@ -37,11 +47,12 @@ function AdminDashboardContent() {
     } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat' | 'customer_kyc' | 'feedback' | 'analytics' | 'orders' | 'notifications' | 'leads' | 'rm_targets' | 'audit_log' | 'price_history' | 'agent_performance'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'overview' || tab === 'companies' || tab === 'users' || tab === 'teams' || tab === 'blogs' || tab === 'settings' || tab === 'agents' || tab === 'demat') {
+        const validTabs = ['overview', 'companies', 'users', 'teams', 'blogs', 'settings', 'agents', 'demat', 'customer_kyc', 'feedback', 'analytics', 'orders', 'notifications', 'leads', 'rm_targets', 'audit_log', 'price_history', 'agent_performance'];
+        if (tab && validTabs.includes(tab)) {
             setActiveTab(tab as any);
         }
     }, [searchParams]);
@@ -78,6 +89,25 @@ function AdminDashboardContent() {
     // User directory search & filter state
     const [userSearchQuery, setUserSearchQuery] = useState('');
     const [userRoleFilter, setUserRoleFilter] = useState<'all' | UserRole>('all');
+
+    // Company search & filter state
+    const [companySearchQuery, setCompanySearchQuery] = useState('');
+    const [companySectorFilter, setCompanySectorFilter] = useState('all');
+
+    // Blog search & filter state
+    const [blogSearchQuery, setBlogSearchQuery] = useState('');
+    const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'draft' | 'published'>('all');
+
+    // Order search & filter state (overview)
+    const [orderSearchQuery, setOrderSearchQuery] = useState('');
+    const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | string>('all');
+
+    // Pagination state
+    const [companyPage, setCompanyPage] = useState(1);
+    const [userPage, setUserPage] = useState(1);
+    const [blogPage, setBlogPage] = useState(1);
+    const [orderPage, setOrderPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     // Blog management state
     const [editingBlog, setEditingBlog] = useState<any | null>(null);
@@ -267,7 +297,8 @@ function AdminDashboardContent() {
             slug: blogFormValues.slug || blogFormValues.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
             authorId: users.find(u => u.role === 'admin')?.id || 'admin-id', // Fallback
             createdAt: editingBlog.createdAt || new Date().toISOString(),
-            publishedAt: blogFormValues.status === 'published' ? (editingBlog.publishedAt || new Date().toISOString()) : null
+            publishedAt: blogFormValues.status === 'published' ? (editingBlog.publishedAt || new Date().toISOString()) : null,
+            scheduledAt: blogFormValues.status === 'scheduled' ? blogFormValues.scheduledAt : null
         };
 
         if (isBlogAddMode) {
@@ -289,20 +320,10 @@ function AdminDashboardContent() {
             <div className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-display font-light tracking-tight text-foreground">
-                        {activeTab === 'overview' ? 'Platform Overview' :
-                            activeTab === 'companies' ? 'Company Listings' :
-                                activeTab === 'users' ? 'User Directory' :
-                                    activeTab === 'teams' ? 'Team Management' :
-                                    activeTab === 'blogs' ? 'Blog Posts' :
-                                            activeTab === 'agents' ? 'Agent Onboarding' : 'Portal Settings'}
+                        {{ overview: 'Platform Overview', companies: 'Company Listings', users: 'User Directory', teams: 'Team Management', blogs: 'Blog Posts', agents: 'Agent Onboarding', customer_kyc: 'Customer KYC', feedback: 'Customer Feedback', settings: 'Portal Settings', orders: 'Order Management', analytics: 'Analytics Dashboard', notifications: 'Notifications', leads: 'Lead Pipeline', rm_targets: 'RM Targets', audit_log: 'Audit Log', price_history: 'Price History', agent_performance: 'Agent Performance', demat: 'Demat Requests' }[activeTab]}
                     </h1>
                     <p className="text-muted mt-1">
-                        {activeTab === 'overview' ? 'Manage platform metrics and global orders.' :
-                            activeTab === 'companies' ? 'Add, edit or remove companies from the marketplace.' :
-                                activeTab === 'users' ? 'Manage platform access and user roles.' :
-                                    activeTab === 'teams' ? 'Create teams and assign Relationship Managers.' :
-                                    activeTab === 'blogs' ? 'Create, edit and publish articles for customers.' :
-                                            activeTab === 'agents' ? 'Review and manage Partner Agent KYC submissions.' : 'Configure global parameters and Home Page CMS.'}
+                        {{ overview: 'Manage platform metrics and global orders.', companies: 'Add, edit or remove companies from the marketplace.', users: 'Manage platform access and user roles.', teams: 'Create teams and assign Relationship Managers.', blogs: 'Create, edit and publish articles for customers.', agents: 'Review and manage Partner Agent KYC submissions.', settings: 'Configure global parameters and Home Page CMS.', orders: 'Process orders, update statuses, and manage the transaction pipeline.', analytics: 'Revenue trends, conversion rates, and performance metrics.', notifications: 'Send and manage notifications to platform users.', leads: 'Bird\'s-eye view of the entire lead pipeline.', rm_targets: 'Set and track RM sales targets vs. quota.', audit_log: 'Track all admin actions for compliance.', price_history: 'Visualize and manage company price history data.', agent_performance: 'Agent-wise performance, earnings, and conversion rates.', customer_kyc: 'Review and approve customer KYC submissions.', feedback: 'View and manage customer feedback.', demat: 'Process dematerialization requests.' }[activeTab]}
                     </p>
                 </div>
                 {(activeTab === 'overview' || activeTab === 'companies') && (
@@ -414,6 +435,61 @@ function AdminDashboardContent() {
                         </Card>
                     </div>
 
+                    {/* Quick Navigation to New Features */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-10">
+                        <button onClick={() => router.push('?tab=analytics')} className="p-3 rounded-xl border border-border bg-white hover:border-primary/30 transition-all text-left group">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon name="ChartBarIcon" size={16} className="text-primary" />
+                                <span className="text-xs font-bold text-foreground">Analytics</span>
+                            </div>
+                            <span className="text-[10px] text-muted">Revenue & trends</span>
+                        </button>
+                        <button onClick={() => router.push('?tab=orders')} className="p-3 rounded-xl border border-border bg-white hover:border-primary/30 transition-all text-left group">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon name="ClipboardDocumentListIcon" size={16} className="text-blue-600" />
+                                <span className="text-xs font-bold text-foreground">Orders</span>
+                            </div>
+                            <span className="text-[10px] text-muted">{orders.length} total</span>
+                        </button>
+                        <button onClick={() => router.push('?tab=leads')} className="p-3 rounded-xl border border-border bg-white hover:border-primary/30 transition-all text-left group">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon name="FunnelIcon" size={16} className="text-purple-600" />
+                                <span className="text-xs font-bold text-foreground">Leads</span>
+                            </div>
+                            <span className="text-[10px] text-muted">Pipeline view</span>
+                        </button>
+                        <button onClick={() => router.push('?tab=rm_targets')} className="p-3 rounded-xl border border-border bg-white hover:border-primary/30 transition-all text-left group">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon name="FlagIcon" size={16} className="text-green-600" />
+                                <span className="text-xs font-bold text-foreground">RM Targets</span>
+                            </div>
+                            <span className="text-[10px] text-muted">Quota tracking</span>
+                        </button>
+                        <button onClick={() => router.push('?tab=notifications')} className="p-3 rounded-xl border border-border bg-white hover:border-primary/30 transition-all text-left group">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon name="BellIcon" size={16} className="text-amber-600" />
+                                <span className="text-xs font-bold text-foreground">Notifications</span>
+                            </div>
+                            <span className="text-[10px] text-muted">Send & manage</span>
+                        </button>
+                        <button onClick={() => router.push('?tab=audit_log')} className="p-3 rounded-xl border border-border bg-white hover:border-primary/30 transition-all text-left group">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon name="ShieldCheckIcon" size={16} className="text-slate-600" />
+                                <span className="text-xs font-bold text-foreground">Audit Log</span>
+                            </div>
+                            <span className="text-[10px] text-muted">Compliance trail</span>
+                        </button>
+                    </div>
+
+                    {(() => {
+                        const filteredOrders = orders.filter(o => {
+                            const matchesSearch = o.companyName.toLowerCase().includes(orderSearchQuery.toLowerCase()) || o.userId.toLowerCase().includes(orderSearchQuery.toLowerCase());
+                            const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
+                            return matchesSearch && matchesStatus;
+                        });
+                        const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+                        const paginatedOrders = filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE);
+                        return (
                     <Card className="border-border shadow-sm mb-10">
                         <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
                             <div>
@@ -421,6 +497,19 @@ function AdminDashboardContent() {
                                 <CardDescription className="text-muted">Monitor all platform deal flow across all Relationship Managers.</CardDescription>
                             </div>
                         </CardHeader>
+                        <div className="p-4 border-b border-border bg-surface/20 flex flex-col md:flex-row gap-4 items-center">
+                            <div className="relative flex-1">
+                                <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                                <Input placeholder="Search by company or user..." className="pl-10 h-10 border-border bg-white" value={orderSearchQuery} onChange={e => { setOrderSearchQuery(e.target.value); setOrderPage(1); }} />
+                            </div>
+                            <select className="h-10 px-3 bg-white border border-border rounded-lg text-xs font-semibold focus:ring-1 focus:ring-primary outline-none" value={orderStatusFilter} onChange={e => { setOrderStatusFilter(e.target.value); setOrderPage(1); }}>
+                                <option value="all">ALL STATUS</option>
+                                <option value="requested">REQUESTED</option>
+                                <option value="under_process">UNDER PROCESS</option>
+                                <option value="mail_sent">MAIL SENT</option>
+                                <option value="in_holding">IN HOLDING</option>
+                            </select>
+                        </div>
                         <CardContent className="p-0 bg-white">
                             <div className="overflow-x-auto">
                                 <Table>
@@ -435,7 +524,7 @@ function AdminDashboardContent() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {orders.map(order => (
+                                        {paginatedOrders.map(order => (
                                             <TableRow key={order.id} className="border-border hover:bg-surface/30">
                                                 <TableCell className="font-medium text-foreground pl-6">{order.companyName}</TableCell>
                                                 <TableCell className="text-muted whitespace-nowrap">{order.userId}</TableCell>
@@ -464,12 +553,33 @@ function AdminDashboardContent() {
                                     </TableBody>
                                 </Table>
                             </div>
+                            {totalOrderPages > 1 && (
+                                <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface/20">
+                                    <span className="text-xs text-muted">{filteredOrders.length} orders</span>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" size="sm" disabled={orderPage <= 1} onClick={() => setOrderPage(p => p - 1)}>Previous</Button>
+                                        <span className="text-xs text-muted">Page {orderPage} of {totalOrderPages}</span>
+                                        <Button variant="outline" size="sm" disabled={orderPage >= totalOrderPages} onClick={() => setOrderPage(p => p + 1)}>Next</Button>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
+                        );
+                    })()}
                 </>
             )}
 
-            {activeTab === 'companies' && (
+            {activeTab === 'companies' && (() => {
+                const sectors = Array.from(new Set(companies.map(c => c.sector)));
+                const filteredCompanies = companies.filter(c => {
+                    const matchesSearch = c.name.toLowerCase().includes(companySearchQuery.toLowerCase()) || c.sector.toLowerCase().includes(companySearchQuery.toLowerCase());
+                    const matchesSector = companySectorFilter === 'all' || c.sector === companySectorFilter;
+                    return matchesSearch && matchesSector;
+                });
+                const totalCompanyPages = Math.max(1, Math.ceil(filteredCompanies.length / PAGE_SIZE));
+                const paginatedCompanies = filteredCompanies.slice((companyPage - 1) * PAGE_SIZE, companyPage * PAGE_SIZE);
+                return (
                 <Card className="border-border shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
                         <div>
@@ -477,6 +587,16 @@ function AdminDashboardContent() {
                             <CardDescription className="text-muted">Manage active listings, current prices, and funding updates.</CardDescription>
                         </div>
                     </CardHeader>
+                    <div className="p-4 border-b border-border bg-surface/20 flex flex-col md:flex-row gap-4 items-center">
+                        <div className="relative flex-1">
+                            <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                            <Input placeholder="Search by name or sector..." className="pl-10 h-10 border-border bg-white" value={companySearchQuery} onChange={e => { setCompanySearchQuery(e.target.value); setCompanyPage(1); }} />
+                        </div>
+                        <select className="h-10 px-3 bg-white border border-border rounded-lg text-xs font-semibold focus:ring-1 focus:ring-primary outline-none" value={companySectorFilter} onChange={e => { setCompanySectorFilter(e.target.value); setCompanyPage(1); }}>
+                            <option value="all">ALL SECTORS</option>
+                            {sectors.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+                        </select>
+                    </div>
                     <CardContent className="p-0 bg-white">
                         <div className="overflow-x-auto">
                             <Table>
@@ -491,7 +611,7 @@ function AdminDashboardContent() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {companies.map(company => (
+                                    {paginatedCompanies.map(company => (
                                         <TableRow key={company.id} className="border-border hover:bg-surface/30">
                                             <TableCell className="font-medium text-foreground pl-6">{company.name}</TableCell>
                                             <TableCell className="text-muted">{company.sector}</TableCell>
@@ -541,9 +661,20 @@ function AdminDashboardContent() {
                                 </TableBody>
                             </Table>
                         </div>
+                        {totalCompanyPages > 1 && (
+                            <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface/20">
+                                <span className="text-xs text-muted">{filteredCompanies.length} companies</span>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" disabled={companyPage <= 1} onClick={() => setCompanyPage(p => p - 1)}>Previous</Button>
+                                    <span className="text-xs text-muted">Page {companyPage} of {totalCompanyPages}</span>
+                                    <Button variant="outline" size="sm" disabled={companyPage >= totalCompanyPages} onClick={() => setCompanyPage(p => p + 1)}>Next</Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            )}
+                );
+            })()}
 
             {activeTab === 'users' && (
                 <Card className="border-border shadow-sm">
@@ -744,7 +875,15 @@ function AdminDashboardContent() {
                 </Card>
             )}
 
-            {activeTab === 'blogs' && (
+            {activeTab === 'blogs' && (() => {
+                const filteredBlogs = blogs.filter(b => {
+                    const matchesSearch = b.title.toLowerCase().includes(blogSearchQuery.toLowerCase());
+                    const matchesStatus = blogStatusFilter === 'all' || b.status === blogStatusFilter;
+                    return matchesSearch && matchesStatus;
+                });
+                const totalBlogPages = Math.max(1, Math.ceil(filteredBlogs.length / PAGE_SIZE));
+                const paginatedBlogs = filteredBlogs.slice((blogPage - 1) * PAGE_SIZE, blogPage * PAGE_SIZE);
+                return (
                 <Card className="border-border shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-white">
                         <div>
@@ -752,6 +891,17 @@ function AdminDashboardContent() {
                             <CardDescription className="text-muted">Manage company news, market updates, and educational articles.</CardDescription>
                         </div>
                     </CardHeader>
+                    <div className="p-4 border-b border-border bg-surface/20 flex flex-col md:flex-row gap-4 items-center">
+                        <div className="relative flex-1">
+                            <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                            <Input placeholder="Search by title..." className="pl-10 h-10 border-border bg-white" value={blogSearchQuery} onChange={e => { setBlogSearchQuery(e.target.value); setBlogPage(1); }} />
+                        </div>
+                        <select className="h-10 px-3 bg-white border border-border rounded-lg text-xs font-semibold focus:ring-1 focus:ring-primary outline-none" value={blogStatusFilter} onChange={e => { setBlogStatusFilter(e.target.value as any); setBlogPage(1); }}>
+                            <option value="all">ALL STATUS</option>
+                            <option value="draft">DRAFT</option>
+                            <option value="published">PUBLISHED</option>
+                        </select>
+                    </div>
                     <CardContent className="p-0 bg-white">
                         <div className="overflow-x-auto">
                             <Table>
@@ -765,11 +915,11 @@ function AdminDashboardContent() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {blogs.length === 0 ? (
+                                    {paginatedBlogs.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center p-8 text-muted italic">No blog posts found.</TableCell>
                                         </TableRow>
-                                    ) : blogs.map(blog => (
+                                    ) : paginatedBlogs.map(blog => (
                                         <TableRow key={blog.id} className="border-border hover:bg-surface/30">
                                             <TableCell className="font-medium text-foreground pl-6 max-w-xs truncate">
                                                 {blog.title}
@@ -811,9 +961,20 @@ function AdminDashboardContent() {
                                 </TableBody>
                             </Table>
                         </div>
+                        {totalBlogPages > 1 && (
+                            <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface/20">
+                                <span className="text-xs text-muted">{filteredBlogs.length} posts</span>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" disabled={blogPage <= 1} onClick={() => setBlogPage(p => p - 1)}>Previous</Button>
+                                    <span className="text-xs text-muted">Page {blogPage} of {totalBlogPages}</span>
+                                    <Button variant="outline" size="sm" disabled={blogPage >= totalBlogPages} onClick={() => setBlogPage(p => p + 1)}>Next</Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            )}
+                );
+            })()}
 
             {activeTab === 'settings' && (
                 <div className="space-y-8">
@@ -970,7 +1131,25 @@ function AdminDashboardContent() {
                 </div>
             )}
 
+            {activeTab === 'customer_kyc' && <CustomerKycTab />}
 
+            {activeTab === 'feedback' && <FeedbackTab />}
+
+            {activeTab === 'analytics' && <AnalyticsDashboard />}
+
+            {activeTab === 'orders' && <OrderManagementTab />}
+
+            {activeTab === 'notifications' && <NotificationManagementTab />}
+
+            {activeTab === 'leads' && <LeadManagementTab />}
+
+            {activeTab === 'rm_targets' && <RmTargetTrackingTab />}
+
+            {activeTab === 'audit_log' && <AuditLogTab />}
+
+            {activeTab === 'price_history' && <PriceHistoryCharts />}
+
+            {activeTab === 'agent_performance' && <AgentPerformanceTab />}
 
             {/* Delivery Details Modal */}
             {deliveryOrderId && (
@@ -1688,8 +1867,20 @@ function AdminDashboardContent() {
                                     >
                                         <option value="draft">Draft</option>
                                         <option value="published">Published</option>
+                                        <option value="scheduled">Scheduled</option>
                                     </select>
                                 </div>
+                                {blogFormValues.status === 'scheduled' && (
+                                    <div>
+                                        <label className="text-sm font-semibold text-foreground mb-1 block">Schedule Date & Time</label>
+                                        <Input
+                                            type="datetime-local"
+                                            className="h-10 border-border"
+                                            value={blogFormValues.scheduledAt || ''}
+                                            onChange={e => setBlogFormValues({ ...blogFormValues, scheduledAt: e.target.value })}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             <div>

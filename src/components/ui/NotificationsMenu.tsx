@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
+import { subscribeToNotifications } from '@/lib/notifications';
 import Link from 'next/link';
 
 interface Notification {
@@ -20,6 +21,7 @@ export default function NotificationsMenu() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [hasNewPulse, setHasNewPulse] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -27,6 +29,22 @@ export default function NotificationsMenu() {
     useEffect(() => {
         if (!user) return;
         fetchNotifications();
+    }, [user]);
+
+    // Real-time subscription for new notifications
+    useEffect(() => {
+        if (!user) return;
+
+        const unsubscribe = subscribeToNotifications(user.id, (newNotification) => {
+            setNotifications(prev => [newNotification as Notification, ...prev]);
+            // Trigger pulse animation on the bell icon
+            setHasNewPulse(true);
+            setTimeout(() => setHasNewPulse(false), 2000);
+        });
+
+        return () => {
+            unsubscribe();
+        };
     }, [user]);
 
     useEffect(() => {
@@ -87,9 +105,9 @@ export default function NotificationsMenu() {
 
     return (
         <div className="relative" ref={menuRef}>
-            <button 
+            <button
                 onClick={toggleOpen}
-                className="relative p-2 text-muted hover:text-foreground rounded-full hover:bg-surface transition-colors focus:outline-none"
+                className={`relative p-2 text-muted hover:text-foreground rounded-full hover:bg-surface transition-colors focus:outline-none ${hasNewPulse ? 'animate-pulse' : ''}`}
             >
                 <Icon name="BellIcon" size={20} />
                 {unreadCount > 0 && (

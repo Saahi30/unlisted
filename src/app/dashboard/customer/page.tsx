@@ -2,19 +2,38 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Icon from '@/components/ui/AppIcon';
 import { useAuth } from '@/lib/auth-context';
+import CustomerKycForm from '@/components/customer/CustomerKycForm';
+import FeedbackDialog from '@/components/customer/FeedbackDialog';
 
 export default function CustomerDashboardPage() {
     const { user, isLoading } = useAuth();
     const { orders, companies, dematRequests } = useAppStore();
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+    const [feedbackOrderId, setFeedbackOrderId] = useState<string | null>(null);
+    const searchParams = useSearchParams();
+    const activeTab = searchParams.get('tab');
 
     if (isLoading || !user) return null;
+
+    // Show KYC form when tab=kyc
+    if (activeTab === 'kyc') {
+        return (
+            <div className="container mx-auto px-4 md:px-8 py-8 max-w-6xl">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-display font-light tracking-tight text-foreground">KYC Verification</h1>
+                    <p className="text-muted mt-1">Complete your identity verification to enable share transfers.</p>
+                </div>
+                <CustomerKycForm />
+            </div>
+        );
+    }
 
     // Filter orders & demat requests to only show those for the current customer mapping
     const userOrders = orders.filter(o => o.userId === user.id);
@@ -375,6 +394,16 @@ export default function CustomerDashboardPage() {
                                                                                         <div className="text-xs font-medium">{new Date(order.createdAt).toLocaleDateString()}</div>
                                                                                     </div>
                                                                                 )}
+                                                                                <div className="flex items-center justify-end">
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 text-[10px] font-bold uppercase tracking-widest"
+                                                                                        onClick={(e) => { e.stopPropagation(); setFeedbackOrderId(order.id); }}
+                                                                                    >
+                                                                                        <Icon name="StarIcon" size={14} className="mr-1" /> Rate
+                                                                                    </Button>
+                                                                                </div>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -467,6 +496,21 @@ export default function CustomerDashboardPage() {
                     </Card>
                 )}
             </div>
+
+            {/* Feedback Dialog */}
+            {feedbackOrderId && (() => {
+                const order = userOrders.find(o => o.id === feedbackOrderId);
+                if (!order) return null;
+                return (
+                    <FeedbackDialog
+                        orderId={order.id}
+                        userId={user.id}
+                        companyName={order.companyName}
+                        onClose={() => setFeedbackOrderId(null)}
+                        onSubmitted={() => setFeedbackOrderId(null)}
+                    />
+                );
+            })()}
         </div>
     );
 }

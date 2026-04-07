@@ -8,16 +8,26 @@ import Icon from '@/components/ui/AppIcon';
 import AgentMarketplaceTab from '@/components/agent/AgentMarketplaceTab';
 import AgentLinksTab from '@/components/agent/AgentLinksTab';
 import AgentEarningsTab from '@/components/agent/AgentEarningsTab';
+import AgentLeaderboard from '@/components/agent/AgentLeaderboard';
+import AgentCRMTab from '@/components/agent/AgentCRMTab';
+import AgentAnalyticsTab from '@/components/agent/AgentAnalyticsTab';
+import AgentStatementsTab from '@/components/agent/AgentStatementsTab';
+import AgentTiersTab from '@/components/agent/AgentTiersTab';
+import AgentTrainingTab from '@/components/agent/AgentTrainingTab';
+import AgentSupportChat from '@/components/agent/AgentSupportChat';
+import AgentMarketingTab from '@/components/agent/AgentMarketingTab';
+import AgentFeedbackTab from '@/components/agent/AgentFeedbackTab';
+import AgentOnboarding from '@/components/agent/AgentOnboarding';
 
 export default function AgentDashboardPage() {
     const { user } = useAuth();
     const searchParams = useSearchParams();
-    const tabString = (searchParams?.get('tab') || 'marketplace') as string;
-    const activeTab = tabString;
+    const activeTab = (searchParams?.get('tab') || 'marketplace') as string;
 
     const [kycData, setKycData] = useState<any>(null);
     const [kycLoading, setKycLoading] = useState(true);
     const [submittingKyc, setSubmittingKyc] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
 
     // KYC Form State
     const [pan, setPan] = useState('');
@@ -45,21 +55,44 @@ export default function AgentDashboardPage() {
                 setBankDetails(data.bank_details || { account_name: '', account_number: '', ifsc: '' });
                 setCmrStatus(data.cmr_status || 'not_uploaded');
                 setCmrUrl(data.cmr_url || '');
+                // Show onboarding if not completed
+                if (!data.onboarding_completed && data.kyc_status === 'approved') {
+                    setShowOnboarding(true);
+                }
             } else if (user.id === 'agt_1') {
-                // Simulator mock
-                setKycData({
-                    kyc_status: 'pending',
-                    pan_number: '',
-                    aadhar_number: '',
-                    bank_details: { account_name: '', account_number: '', ifsc: '' },
-                    cmr_status: 'not_uploaded',
-                    cmr_url: ''
-                });
+                const mockData = {
+                    kyc_status: 'approved',
+                    pan_number: 'ABCDE1234F',
+                    aadhar_number: '1234 5678 9012',
+                    bank_details: { account_name: 'Partner Broker', account_number: '1234567890', ifsc: 'HDFC0001234' },
+                    cmr_status: 'verified',
+                    cmr_url: '',
+                    total_earnings: 25000,
+                    withdrawn_earnings: 5000,
+                    current_tier: 'Silver',
+                    onboarding_completed: false,
+                    avg_rating: 4.3,
+                    total_clients: 12,
+                };
+                setKycData(mockData);
+                setPan(mockData.pan_number);
+                setAadhar(mockData.aadhar_number);
+                setBankDetails(mockData.bank_details);
+                setCmrStatus(mockData.cmr_status);
+                if (!mockData.onboarding_completed) setShowOnboarding(true);
             }
             setKycLoading(false);
         };
         fetchKyc();
     }, [user, supabase]);
+
+    const completeOnboarding = async () => {
+        setShowOnboarding(false);
+        if (user) {
+            await supabase.from('agent_profiles').update({ onboarding_completed: true }).eq('agent_id', user.id);
+            setKycData((prev: any) => ({ ...prev, onboarding_completed: true }));
+        }
+    };
 
     const submitKyc = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,9 +108,7 @@ export default function AgentDashboardPage() {
         let finalCmrUrl = cmrUrl;
         let finalCmrStatus = cmrStatus;
 
-        // If a new file is uploaded, simulate storage upload
         if (cmrFile) {
-            // Simulator: just pretend we uploaded it to S3/Supabase Storage
             finalCmrUrl = `https://storage.sharesaathi.com/cmr/${user.id}/${cmrFile.name}`;
             finalCmrStatus = 'pending';
         }
@@ -106,7 +137,6 @@ export default function AgentDashboardPage() {
             setCmrUrl(finalCmrUrl);
             alert('KYC & CMR Submitted Successfully! Awaiting Admin Approval.');
         } else if (user.id === 'agt_1') {
-            // Simulator failover
             setKycData({ ...payload, kyc_status: 'pending' });
             setCmrStatus(finalCmrStatus);
             setCmrUrl(finalCmrUrl);
@@ -159,6 +189,10 @@ export default function AgentDashboardPage() {
 
     return (
         <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-fade-up">
+            {/* Onboarding Wizard */}
+            {showOnboarding && isApproved && (
+                <AgentOnboarding onComplete={completeOnboarding} userName={user?.name || 'Partner'} />
+            )}
 
             {/* Header info */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -168,12 +202,20 @@ export default function AgentDashboardPage() {
                         {isApproved ? 'Manage your catalogue, links, and earnings.' : 'Complete your KYC below.'}
                     </p>
                 </div>
-                {isApproved && (
-                    <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 shadow-sm">
-                        <Icon name="ShieldCheckIcon" size={18} className="text-green-600" />
-                        <span className="text-sm font-bold tracking-wide">Verified Partner</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    {kycData?.current_tier && isApproved && (
+                        <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-lg border border-amber-200 shadow-sm">
+                            <Icon name="TrophyIcon" size={16} />
+                            <span className="text-sm font-bold">{kycData.current_tier} Tier</span>
+                        </div>
+                    )}
+                    {isApproved && (
+                        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 shadow-sm">
+                            <Icon name="ShieldCheckIcon" size={18} className="text-green-600" />
+                            <span className="text-sm font-bold tracking-wide">Verified Partner</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content Tabs */}
@@ -292,7 +334,7 @@ export default function AgentDashboardPage() {
                                                 </div>
                                                 <p className="text-[10px] text-muted">
                                                     {cmrFile ? `Ready to upload: ${cmrFile.name}` :
-                                                        cmrStatus === 'verified' ? 'Verified by Admin ✓' :
+                                                        cmrStatus === 'verified' ? 'Verified by Admin' :
                                                             cmrStatus === 'pending' ? 'Document under review' :
                                                                 cmrStatus === 'rejected' ? `Rejected: ${kycData?.cmr_rejection_reason || 'Please re-upload'}` :
                                                                     'PDF or Image required'}
@@ -359,17 +401,18 @@ export default function AgentDashboardPage() {
                 </div>
             )}
 
-            {activeTab === 'marketplace' && isApproved && (
-                <AgentMarketplaceTab />
-            )}
-
-            {activeTab === 'links' && isApproved && (
-                <AgentLinksTab />
-            )}
-
-            {activeTab === 'earnings' && isApproved && (
-                <AgentEarningsTab kycData={kycData} />
-            )}
+            {activeTab === 'marketplace' && isApproved && <AgentMarketplaceTab />}
+            {activeTab === 'links' && isApproved && <AgentLinksTab />}
+            {activeTab === 'earnings' && isApproved && <AgentEarningsTab kycData={kycData} />}
+            {activeTab === 'leaderboard' && isApproved && <AgentLeaderboard />}
+            {activeTab === 'clients' && isApproved && <AgentCRMTab />}
+            {activeTab === 'analytics' && isApproved && <AgentAnalyticsTab />}
+            {activeTab === 'statements' && isApproved && <AgentStatementsTab kycData={kycData} />}
+            {activeTab === 'tiers' && isApproved && <AgentTiersTab kycData={kycData} />}
+            {activeTab === 'training' && isApproved && <AgentTrainingTab />}
+            {activeTab === 'support' && isApproved && <AgentSupportChat />}
+            {activeTab === 'marketing' && isApproved && <AgentMarketingTab currentTier={kycData?.current_tier || 'Bronze'} />}
+            {activeTab === 'feedback' && isApproved && <AgentFeedbackTab />}
         </div>
     );
 }

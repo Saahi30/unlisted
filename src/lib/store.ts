@@ -4,9 +4,91 @@ import { v4 as uuidv4 } from 'uuid';
 import { MOCK_ORDERS, MOCK_LEADS, Lead, MOCK_COMPANIES, Company, CompanyFinancial, MOCK_USERS, MOCK_BLOGS, MOCK_HISTORICAL_PRICES } from './mock-data';
 import { UserRole } from './auth-context';
 import { supabase } from './supabase';
+import { logAudit } from './audit';
+import { createNotification } from './notifications';
 
 export type OrderStatus = 'requested' | 'under_process' | 'mail_sent' | 'in_holding';
 export type DematStatus = 'initiated' | 'under_process' | 'completed';
+
+// Manager feature types
+export interface Ticket {
+    id: string;
+    customerId: string;
+    customerName: string;
+    assignedRmId: string;
+    subject: string;
+    description: string;
+    status: 'open' | 'in_progress' | 'resolved' | 'escalated';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    createdAt: string;
+    updatedAt: string;
+    messages: { from: string; text: string; at: string }[];
+}
+
+export interface RmActivity {
+    id: string;
+    rmId: string;
+    action: string;
+    details: string;
+    timestamp: string;
+    category: 'login' | 'lead' | 'order' | 'call' | 'document' | 'note';
+}
+
+export interface Commission {
+    id: string;
+    rmId: string;
+    orderId: string;
+    orderAmount: number;
+    commissionRate: number;
+    commissionAmount: number;
+    status: 'pending' | 'approved' | 'paid';
+    createdAt: string;
+}
+
+export interface Broadcast {
+    id: string;
+    from: string;
+    to: string[]; // rm IDs or 'all'
+    subject: string;
+    message: string;
+    createdAt: string;
+    readBy: string[];
+}
+
+export interface AuditEntry {
+    id: string;
+    userId: string;
+    userName: string;
+    action: string;
+    target: string;
+    details: string;
+    timestamp: string;
+}
+
+export interface CalendarEvent {
+    id: string;
+    title: string;
+    rmId?: string;
+    date: string;
+    time: string;
+    type: 'meeting' | 'review' | 'followup' | 'deadline';
+    notes: string;
+}
+
+export interface OnboardingTask {
+    id: string;
+    rmId: string;
+    task: string;
+    completed: boolean;
+    dueDate: string;
+}
+
+export interface RmGoal {
+    id: string;
+    rmId: string;
+    quarter: string;
+    goals: { label: string; target: number; current: number }[];
+}
 
 export interface User {
     id: string;
@@ -69,10 +151,11 @@ export interface Blog {
     content: string; // HTML or Markdown
     excerpt: string;
     authorId: string;
-    status: 'draft' | 'published';
+    status: 'draft' | 'published' | 'scheduled';
     views: number;
     createdAt: string;
     publishedAt?: string;
+    scheduledAt?: string;
 }
 
 export interface HistoricalPrice {
@@ -93,6 +176,10 @@ interface AppState {
     historicalPrices: HistoricalPrice[];
     companyFinancials: CompanyFinancial[];
     homePageData: any;
+    theme: 'light' | 'dark' | 'system';
+    setTheme: (theme: 'light' | 'dark' | 'system') => void;
+    language: string;
+    setLanguage: (lang: string) => void;
     addOrder: (order: ExtendedOrder) => void;
     updateOrderStatus: (id: string, status: OrderStatus, deliveryDetails?: any, txProofUrl?: string) => void;
     addOrderNote: (id: string, note: string) => void;
@@ -118,6 +205,32 @@ interface AppState {
     removeHistoricalPrice: (id: string) => Promise<void>;
     updateHomePageData: (data: any) => void;
     rmTargets: Record<string, number>;
+    // Manager features
+    tickets: Ticket[];
+    addTicket: (ticket: Ticket) => void;
+    updateTicketStatus: (id: string, status: Ticket['status']) => void;
+    addTicketMessage: (id: string, msg: { from: string; text: string; at: string }) => void;
+    rmActivities: RmActivity[];
+    addRmActivity: (activity: RmActivity) => void;
+    commissions: Commission[];
+    addCommission: (commission: Commission) => void;
+    updateCommissionStatus: (id: string, status: Commission['status']) => void;
+    broadcasts: Broadcast[];
+    addBroadcast: (broadcast: Broadcast) => void;
+    markBroadcastRead: (id: string, rmId: string) => void;
+    auditLog: AuditEntry[];
+    addAuditEntry: (entry: AuditEntry) => void;
+    calendarEvents: CalendarEvent[];
+    addCalendarEvent: (event: CalendarEvent) => void;
+    removeCalendarEvent: (id: string) => void;
+    onboardingTasks: OnboardingTask[];
+    addOnboardingTask: (task: OnboardingTask) => void;
+    toggleOnboardingTask: (id: string) => void;
+    rmGoals: RmGoal[];
+    setRmGoal: (goal: RmGoal) => void;
+    updateRmGoalProgress: (goalId: string, goalLabel: string, current: number) => void;
+    reassignLead: (leadId: string, newRmId: string) => void;
+    approveOrder: (orderId: string) => void;
     fetchInitialData: () => Promise<void>;
 }
 
@@ -149,9 +262,152 @@ export const useAppStore = create<AppState>()(
             historicalPrices: [...MOCK_HISTORICAL_PRICES],
             companyFinancials: [],
             homePageData: HOME_PAGE_DATA,
+            theme: 'light' as 'light' | 'dark' | 'system',
+            setTheme: (theme) => {
+                set({ theme });
+                if (typeof window !== 'undefined') {
+                    const root = document.documentElement;
+                    if (theme === 'dark') {
+                        root.classList.add('dark');
+                    } else if (theme === 'light') {
+                        root.classList.remove('dark');
+                    } else {
+                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        root.classList.toggle('dark', prefersDark);
+                    }
+                }
+            },
+            language: 'en' as string,
+            setLanguage: (lang) => set({ language: lang }),
             rmTargets: {
                 'sls_1': 6000000,
                 'sls_2': 8000000
+            },
+            // Manager feature state
+            tickets: [
+                { id: 'tkt_1', customerId: 'cust_1', customerName: 'John Doe', assignedRmId: 'sls_1', subject: 'Order delay inquiry', description: 'My Swiggy share order has been pending for 3 days.', status: 'open', priority: 'high', createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date(Date.now() - 86400000).toISOString(), messages: [{ from: 'cust_1', text: 'When will my order be processed?', at: new Date(Date.now() - 86400000).toISOString() }] },
+                { id: 'tkt_2', customerId: 'user_2', customerName: 'Alok Sharma', assignedRmId: 'sls_1', subject: 'KYC document rejected', description: 'My PAN card was rejected during verification.', status: 'in_progress', priority: 'medium', createdAt: new Date(Date.now() - 172800000).toISOString(), updatedAt: new Date(Date.now() - 43200000).toISOString(), messages: [] },
+                { id: 'tkt_3', customerId: 'user_3', customerName: 'Megha Gupta', assignedRmId: 'sls_2', subject: 'Refund request for cancelled order', description: 'I cancelled my Postman shares order but haven\'t received refund.', status: 'escalated', priority: 'critical', createdAt: new Date(Date.now() - 259200000).toISOString(), updatedAt: new Date(Date.now() - 3600000).toISOString(), messages: [{ from: 'user_3', text: 'Please escalate this immediately.', at: new Date(Date.now() - 3600000).toISOString() }] },
+            ] as Ticket[],
+            addTicket: (ticket) => set((state) => ({ tickets: [ticket, ...state.tickets] })),
+            updateTicketStatus: (id, status) => set((state) => ({
+                tickets: state.tickets.map(t => t.id === id ? { ...t, status, updatedAt: new Date().toISOString() } : t)
+            })),
+            addTicketMessage: (id, msg) => set((state) => ({
+                tickets: state.tickets.map(t => t.id === id ? { ...t, messages: [...t.messages, msg], updatedAt: new Date().toISOString() } : t)
+            })),
+            rmActivities: [
+                { id: 'act_1', rmId: 'sls_1', action: 'Logged in', details: 'Web portal login', timestamp: new Date(Date.now() - 3600000).toISOString(), category: 'login' as const },
+                { id: 'act_2', rmId: 'sls_1', action: 'Updated lead', details: 'Added note to Rahul Verma', timestamp: new Date(Date.now() - 7200000).toISOString(), category: 'lead' as const },
+                { id: 'act_3', rmId: 'sls_2', action: 'Processed order', details: 'Fulfilled ORD-004 for Megha Gupta', timestamp: new Date(Date.now() - 10800000).toISOString(), category: 'order' as const },
+                { id: 'act_4', rmId: 'sls_1', action: 'Called customer', details: 'Follow-up call with John Doe', timestamp: new Date(Date.now() - 14400000).toISOString(), category: 'call' as const },
+                { id: 'act_5', rmId: 'sls_2', action: 'Uploaded document', details: 'KYC proof for Megha Gupta', timestamp: new Date(Date.now() - 18000000).toISOString(), category: 'document' as const },
+                { id: 'act_6', rmId: 'sls_2', action: 'Logged in', details: 'Web portal login', timestamp: new Date(Date.now() - 21600000).toISOString(), category: 'login' as const },
+                { id: 'act_7', rmId: 'sls_1', action: 'Created lead', details: 'New lead: Vikram Singh', timestamp: new Date(Date.now() - 25200000).toISOString(), category: 'lead' as const },
+            ] as RmActivity[],
+            addRmActivity: (activity) => set((state) => ({ rmActivities: [activity, ...state.rmActivities] })),
+            commissions: [
+                { id: 'comm_1', rmId: 'sls_1', orderId: 'ord_2', orderAmount: 62500, commissionRate: 2.5, commissionAmount: 1562.5, status: 'paid' as const, createdAt: new Date(Date.now() - 806400000).toISOString() },
+                { id: 'comm_2', rmId: 'sls_1', orderId: 'ord_1', orderAmount: 45000, commissionRate: 2.5, commissionAmount: 1125, status: 'pending' as const, createdAt: new Date(Date.now() - 86400000).toISOString() },
+                { id: 'comm_3', rmId: 'sls_2', orderId: 'ord_4', orderAmount: 108000, commissionRate: 2.0, commissionAmount: 2160, status: 'approved' as const, createdAt: new Date(Date.now() - 7200000).toISOString() },
+            ] as Commission[],
+            addCommission: (commission) => set((state) => ({ commissions: [commission, ...state.commissions] })),
+            updateCommissionStatus: (id, status) => set((state) => ({
+                commissions: state.commissions.map(c => c.id === id ? { ...c, status } : c)
+            })),
+            broadcasts: [
+                { id: 'bc_1', from: 'mgr_1', to: ['sls_1', 'sls_2'], subject: 'Monthly targets updated', message: 'Hi team, Q2 targets have been revised upward by 15%. Please check your individual dashboards.', createdAt: new Date(Date.now() - 172800000).toISOString(), readBy: ['sls_1'] },
+            ] as Broadcast[],
+            addBroadcast: (broadcast) => set((state) => ({ broadcasts: [broadcast, ...state.broadcasts] })),
+            markBroadcastRead: (id, rmId) => set((state) => ({
+                broadcasts: state.broadcasts.map(b => b.id === id ? { ...b, readBy: [...b.readBy, rmId] } : b)
+            })),
+            auditLog: [
+                { id: 'aud_1', userId: 'mgr_1', userName: 'Sales Director', action: 'Updated RM Target', target: 'Priya Patel', details: 'Changed target from ₹50L to ₹60L', timestamp: new Date(Date.now() - 86400000).toISOString() },
+                { id: 'aud_2', userId: 'mgr_1', userName: 'Sales Director', action: 'Approved Order', target: 'ORD-002', details: 'High-value order approved for Alok Sharma', timestamp: new Date(Date.now() - 172800000).toISOString() },
+                { id: 'aud_3', userId: 'mgr_1', userName: 'Sales Director', action: 'Reassigned Lead', target: 'Rahul Verma', details: 'Moved from Priya Patel to Amit Kumar', timestamp: new Date(Date.now() - 259200000).toISOString() },
+            ] as AuditEntry[],
+            addAuditEntry: (entry) => set((state) => ({ auditLog: [entry, ...state.auditLog] })),
+            calendarEvents: [
+                { id: 'cal_1', title: '1:1 with Priya Patel', rmId: 'sls_1', date: new Date().toISOString().split('T')[0], time: '10:00', type: 'review' as const, notes: 'Discuss Q2 performance' },
+                { id: 'cal_2', title: 'Team standup', date: new Date().toISOString().split('T')[0], time: '09:00', type: 'meeting' as const, notes: 'Daily sync' },
+                { id: 'cal_3', title: 'Follow up: Rahul Verma deal', rmId: 'sls_1', date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '14:00', type: 'followup' as const, notes: 'Close Swiggy deal' },
+            ] as CalendarEvent[],
+            addCalendarEvent: (event) => set((state) => ({ calendarEvents: [...state.calendarEvents, event] })),
+            removeCalendarEvent: (id) => set((state) => ({ calendarEvents: state.calendarEvents.filter(e => e.id !== id) })),
+            onboardingTasks: [] as OnboardingTask[],
+            addOnboardingTask: (task) => set((state) => ({ onboardingTasks: [...state.onboardingTasks, task] })),
+            toggleOnboardingTask: (id) => set((state) => ({
+                onboardingTasks: state.onboardingTasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+            })),
+            rmGoals: [] as RmGoal[],
+            setRmGoal: (goal) => set((state) => ({
+                rmGoals: state.rmGoals.some(g => g.id === goal.id)
+                    ? state.rmGoals.map(g => g.id === goal.id ? goal : g)
+                    : [...state.rmGoals, goal]
+            })),
+            updateRmGoalProgress: (goalId, goalLabel, current) => set((state) => ({
+                rmGoals: state.rmGoals.map(g => g.id === goalId ? {
+                    ...g, goals: g.goals.map(gl => gl.label === goalLabel ? { ...gl, current } : gl)
+                } : g)
+            })),
+            reassignLead: (leadId, newRmId) => {
+                const lead = get().leads.find(l => l.id === leadId);
+                const oldRmId = lead?.assignedRmId || 'unassigned';
+                set((state) => ({
+                    leads: state.leads.map(l => l.id === leadId ? { ...l, assignedRmId: newRmId } : l)
+                }));
+                supabase.from('leads').update({ assigned_rm_id: newRmId }).eq('id', leadId);
+
+                // Audit trail
+                logAudit({
+                    entityType: 'lead',
+                    entityId: leadId,
+                    action: 'assignment',
+                    oldValue: oldRmId,
+                    newValue: newRmId,
+                    metadata: { leadName: lead?.name }
+                });
+
+                // Notify the new RM
+                const rmUser = get().users.find(u => u.id === newRmId);
+                if (rmUser) {
+                    createNotification({
+                        userId: newRmId,
+                        title: 'New Lead Assigned',
+                        message: `Lead "${lead?.name}" has been assigned to you.`,
+                        type: 'assignment',
+                        link: '/dashboard/sales'
+                    });
+                }
+            },
+            approveOrder: (orderId) => {
+                const order = get().orders.find(o => o.id === orderId);
+                set((state) => ({
+                    orders: state.orders.map(o => o.id === orderId && o.status === 'requested' ? { ...o, status: 'under_process' as OrderStatus } : o)
+                }));
+                supabase.from('orders').update({ status: 'under_process' }).eq('id', orderId);
+
+                // Audit trail
+                logAudit({
+                    entityType: 'order',
+                    entityId: orderId,
+                    action: 'status_change',
+                    oldValue: 'requested',
+                    newValue: 'under_process',
+                    metadata: { companyName: order?.companyName }
+                });
+
+                // Notify customer
+                if (order?.userId) {
+                    createNotification({
+                        userId: order.userId,
+                        title: 'Order Approved',
+                        message: `Your order for ${order.companyName} has been approved and is under process.`,
+                        type: 'order',
+                        link: '/dashboard/customer/orders'
+                    });
+                }
             },
             addOrder: async (order) => {
                 const id = order.id.startsWith('ord_') ? uuidv4() : order.id;
@@ -174,6 +430,9 @@ export const useAppStore = create<AppState>()(
                 }]);
             },
             updateOrderStatus: async (id, status, deliveryDetails, txProofUrl) => {
+                const oldOrder = get().orders.find(o => o.id === id);
+                const oldStatus = oldOrder?.status || 'unknown';
+
                 set((state) => ({
                     orders: state.orders.map(o => {
                         if (o.id === id) {
@@ -193,6 +452,27 @@ export const useAppStore = create<AppState>()(
                     ...(deliveryDetails ? { delivery_details: deliveryDetails } : {}),
                     ...(txProofUrl ? { tx_proof_url: txProofUrl } : {})
                 }).eq('id', id);
+
+                // Audit trail
+                logAudit({
+                    entityType: 'order',
+                    entityId: id,
+                    action: 'status_change',
+                    oldValue: oldStatus,
+                    newValue: status,
+                    metadata: { companyName: oldOrder?.companyName, deliveryDetails }
+                });
+
+                // Notify customer
+                if (oldOrder?.userId) {
+                    createNotification({
+                        userId: oldOrder.userId,
+                        title: `Order ${status === 'in_holding' ? 'Settled' : 'Updated'}`,
+                        message: `Your order for ${oldOrder.companyName} has been moved to ${status.replace('_', ' ')}.`,
+                        type: 'order',
+                        link: '/dashboard/customer/orders'
+                    });
+                }
 
                 // Auto move mail_sent to in_holding after 5 minutes
                 if (status === 'mail_sent') {
@@ -464,7 +744,8 @@ export const useAppStore = create<AppState>()(
                     author_id: blog.authorId,
                     status: blog.status,
                     views: blog.views,
-                    published_at: blog.publishedAt
+                    published_at: blog.publishedAt,
+                    scheduled_at: blog.scheduledAt
                 }]);
             },
             updateBlog: async (blog) => {
@@ -479,7 +760,8 @@ export const useAppStore = create<AppState>()(
                     excerpt: blog.excerpt,
                     status: blog.status,
                     views: blog.views,
-                    published_at: blog.publishedAt
+                    published_at: blog.publishedAt,
+                    scheduled_at: blog.scheduledAt
                 }).eq('id', blog.id);
             },
             removeBlog: async (id) => {
@@ -724,7 +1006,7 @@ export const useAppStore = create<AppState>()(
         }),
         {
             name: 'sharesaathi-storage',
-            version: 4, // bump to clear cache after adding company fundamentals & financials
+            version: 6, // bump for manager features
             partialize: (state) => ({
                 orders: state.orders,
                 leads: state.leads,
@@ -736,7 +1018,17 @@ export const useAppStore = create<AppState>()(
                 users: state.users,
                 teams: state.teams,
                 blogs: state.blogs,
-                homePageData: state.homePageData
+                homePageData: state.homePageData,
+                theme: state.theme,
+                language: state.language,
+                tickets: state.tickets,
+                rmActivities: state.rmActivities,
+                commissions: state.commissions,
+                broadcasts: state.broadcasts,
+                auditLog: state.auditLog,
+                calendarEvents: state.calendarEvents,
+                onboardingTasks: state.onboardingTasks,
+                rmGoals: state.rmGoals,
             })
         }
     )
