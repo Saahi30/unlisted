@@ -1,24 +1,49 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
-  // Proxy homepage to Framer
-  if (pathname === "/") {
-    return NextResponse.rewrite(new URL("https://sharesaathi.framer.website"));
-  }
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
 
-  // Proxy Framer static assets
-  if (pathname.startsWith("/framer/")) {
-    return NextResponse.rewrite(
-      new URL(`https://sharesaathi.framer.website${pathname}`)
-    );
-  }
+  // Refresh the auth session so it doesn't expire
+  await supabase.auth.getUser();
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/", "/framer/:path*"],
+  matcher: [
+    /*
+     * Match all request paths except static files and images:
+     * - _next/static, _next/image
+     * - favicon.ico
+     * - common asset file extensions
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)",
+  ],
 };
