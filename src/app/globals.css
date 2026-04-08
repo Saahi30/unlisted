@@ -3,25 +3,53 @@
 
 @theme {
   --color-primary: #1C2B3A;
+  --color-primary-hover: #263A4D;
   --color-accent: #C8A96E;
+  --color-accent-hover: #D4B87A;
+  --color-accent-subtle: rgba(200, 169, 110, 0.12);
   --color-background: #FAFAF8;
   --color-surface: #F4F2EE;
+  --color-surface-elevated: #FFFFFF;
   --color-border: #E8E4DC;
+  --color-border-strong: #D5CFC5;
   --color-muted: #7A7268;
   --color-foreground: #1C2B3A;
+  --color-foreground-secondary: #5A6A78;
   --color-dark: #111820;
+  --color-success: #2D8A56;
+  --color-info: #3B7DD8;
+  --color-cta: #2D6A4F;
+  --color-cta-hover: #236B43;
+  --color-badge-bg: #F0EBE2;
+  --color-badge-text: #6B5D3E;
+  --color-price-highlight: #1B5E3B;
+  --color-price-bg: rgba(45, 106, 79, 0.06);
 }
 
 /* Dark mode overrides */
 .dark {
   --color-primary: #C8A96E;
+  --color-primary-hover: #D4B87A;
   --color-accent: #1C2B3A;
+  --color-accent-hover: #263A4D;
+  --color-accent-subtle: rgba(200, 169, 110, 0.10);
   --color-background: #111820;
   --color-surface: #1A2332;
+  --color-surface-elevated: #202D3D;
   --color-border: #2A3442;
+  --color-border-strong: #3A4A5A;
   --color-muted: #8A9AAA;
   --color-foreground: #E8E4DC;
+  --color-foreground-secondary: #9AACBC;
   --color-dark: #FAFAF8;
+  --color-success: #4ADE80;
+  --color-info: #60A5FA;
+  --color-cta: #C8A96E;
+  --color-cta-hover: #D4B87A;
+  --color-badge-bg: #2A3442;
+  --color-badge-text: #C8A96E;
+  --color-price-highlight: #C8A96E;
+  --color-price-bg: rgba(200, 169, 110, 0.08);
 }
 
 .dark ::selection {

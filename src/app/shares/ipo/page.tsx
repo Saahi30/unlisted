@@ -9,7 +9,7 @@ import Icon from '@/components/ui/AppIcon';
 import { ArrowLeft } from 'lucide-react';
 
 const IPO_STATUS_CONFIG: Record<string, { label: string; color: string; order: number }> = {
-    rumored: { label: 'Rumored', color: 'bg-slate-50 text-slate-600 border-slate-200', order: 1 },
+    rumored: { label: 'Rumored', color: 'bg-surface text-muted border-border', order: 1 },
     drhp_filed: { label: 'DRHP Filed', color: 'bg-amber-50 text-amber-600 border-amber-200', order: 2 },
     sebi_approved: { label: 'SEBI Approved', color: 'bg-blue-50 text-blue-600 border-blue-200', order: 3 },
     date_announced: { label: 'Date Announced', color: 'bg-green-50 text-green-600 border-green-200', order: 4 },

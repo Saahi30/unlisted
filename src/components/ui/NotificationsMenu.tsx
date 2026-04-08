@@ -111,14 +111,14 @@ export default function NotificationsMenu() {
             >
                 <Icon name="BellIcon" size={20} />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-white shadow-sm">
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-surface-elevated shadow-sm">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-border z-50 overflow-hidden flex flex-col max-h-[80vh] origin-top-right animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-surface-elevated rounded-xl shadow-2xl border border-border z-50 overflow-hidden flex flex-col max-h-[80vh] origin-top-right animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-4 border-b border-border flex items-center justify-between bg-surface/80 backdrop-blur-sm relative z-10">
                         <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
                             Notifications
@@ -138,7 +138,7 @@ export default function NotificationsMenu() {
                         )}
                     </div>
                     
-                    <div className="overflow-y-auto flex-1 p-2 bg-white relative">
+                    <div className="overflow-y-auto flex-1 p-2 bg-surface-elevated relative">
                         {notifications.length === 0 ? (
                             <div className="p-8 text-center text-muted flex flex-col items-center justify-center min-h-[160px]">
                                 <Icon name="BellSlashIcon" size={32} className="mb-3 text-muted/30" />

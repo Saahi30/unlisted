@@ -17,12 +17,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         const baseClass = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
 
         const variants = {
-            default: "bg-blue-600 text-white hover:bg-blue-600/90 shadow",
+            default: "bg-cta text-white hover:bg-cta-hover shadow",
             destructive: "bg-red-500 text-white shadow-sm hover:bg-red-500/90",
-            outline: "border border-slate-200 bg-transparent shadow-sm hover:bg-slate-100 text-slate-900",
-            secondary: "bg-slate-100 text-slate-900 shadow-sm hover:bg-slate-100/80",
-            ghost: "hover:bg-slate-100 hover:text-slate-900 text-slate-600",
-            link: "text-blue-600 underline-offset-4 hover:underline",
+            outline: "border border-border bg-transparent shadow-sm hover:bg-surface hover:border-border-strong text-foreground",
+            secondary: "bg-surface text-foreground shadow-sm hover:bg-surface/80",
+            ghost: "hover:bg-surface hover:text-foreground text-foreground-secondary",
+            link: "text-accent underline-offset-4 hover:underline",
         };
 
         const sizes = {
