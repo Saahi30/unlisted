@@ -26,8 +26,8 @@
   --color-price-bg: rgba(45, 106, 79, 0.06);
 }
 
-/* Dark mode overrides */
-.dark {
+/* Dark / Midnight theme */
+.dark, .theme-midnight {
   --color-primary: #C8A96E;
   --color-primary-hover: #D4B87A;
   --color-accent: #1C2B3A;
@@ -50,6 +50,84 @@
   --color-badge-text: #C8A96E;
   --color-price-highlight: #C8A96E;
   --color-price-bg: rgba(200, 169, 110, 0.08);
+}
+
+/* Ocean theme - cool blue tones */
+.theme-ocean {
+  --color-primary: #1E3A5F;
+  --color-primary-hover: #2A4D7A;
+  --color-accent: #3B82C4;
+  --color-accent-hover: #5196D4;
+  --color-accent-subtle: rgba(59, 130, 196, 0.10);
+  --color-background: #F0F5FA;
+  --color-surface: #E4ECF4;
+  --color-surface-elevated: #FFFFFF;
+  --color-border: #C8D8E8;
+  --color-border-strong: #A8C0D8;
+  --color-muted: #6B8299;
+  --color-foreground: #1E3A5F;
+  --color-foreground-secondary: #4A6A8A;
+  --color-dark: #0F1F30;
+  --color-success: #16A34A;
+  --color-info: #2563EB;
+  --color-cta: #1E3A5F;
+  --color-cta-hover: #2A4D7A;
+  --color-badge-bg: #DBE8F4;
+  --color-badge-text: #1E3A5F;
+  --color-price-highlight: #1E3A5F;
+  --color-price-bg: rgba(30, 58, 95, 0.06);
+}
+
+/* Forest theme - earthy greens */
+.theme-forest {
+  --color-primary: #2D5A3D;
+  --color-primary-hover: #3A7050;
+  --color-accent: #8B6F47;
+  --color-accent-hover: #A0825A;
+  --color-accent-subtle: rgba(139, 111, 71, 0.10);
+  --color-background: #F5F3EE;
+  --color-surface: #EBE8E0;
+  --color-surface-elevated: #FFFFFF;
+  --color-border: #D4CFC2;
+  --color-border-strong: #B8B0A0;
+  --color-muted: #6B7A6B;
+  --color-foreground: #2D3B2D;
+  --color-foreground-secondary: #4A5E4A;
+  --color-dark: #1A261A;
+  --color-success: #2D8A56;
+  --color-info: #3B7DD8;
+  --color-cta: #2D5A3D;
+  --color-cta-hover: #3A7050;
+  --color-badge-bg: #E2DDD2;
+  --color-badge-text: #5A4A2E;
+  --color-price-highlight: #2D5A3D;
+  --color-price-bg: rgba(45, 90, 61, 0.06);
+}
+
+/* Royal theme - deep purple & gold */
+.theme-royal {
+  --color-primary: #4A2D6E;
+  --color-primary-hover: #5C3A88;
+  --color-accent: #D4A843;
+  --color-accent-hover: #E0BA5A;
+  --color-accent-subtle: rgba(212, 168, 67, 0.10);
+  --color-background: #F8F5FA;
+  --color-surface: #F0EAF4;
+  --color-surface-elevated: #FFFFFF;
+  --color-border: #DDD4E8;
+  --color-border-strong: #C4B6D6;
+  --color-muted: #7A6B8A;
+  --color-foreground: #2D1B42;
+  --color-foreground-secondary: #5A4A70;
+  --color-dark: #1A0F28;
+  --color-success: #2D8A56;
+  --color-info: #6366F1;
+  --color-cta: #4A2D6E;
+  --color-cta-hover: #5C3A88;
+  --color-badge-bg: #EDE4F5;
+  --color-badge-text: #4A2D6E;
+  --color-price-highlight: #4A2D6E;
+  --color-price-bg: rgba(74, 45, 110, 0.06);
 }
 
 .dark ::selection {

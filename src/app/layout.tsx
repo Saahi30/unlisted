@@ -34,8 +34,10 @@ export default function RootLayout({
             try {
               var stored = JSON.parse(localStorage.getItem('sharesaathi-storage') || '{}');
               var theme = stored.state && stored.state.theme;
-              if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
+              if (theme === 'midnight') {
+                document.documentElement.classList.add('dark', 'theme-midnight');
+              } else if (theme === 'ocean' || theme === 'forest' || theme === 'royal') {
+                document.documentElement.classList.add('theme-' + theme);
               }
             } catch(e) {}
           })();

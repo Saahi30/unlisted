@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useAppStore } from '@/lib/store';
 import ShareSaathiChat from '@/components/chat/ShareSaathiChat';
 import NotificationsMenu from '@/components/ui/NotificationsMenu';
+import ThemeSelector from '@/components/ThemeSelector';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <Suspense fallback={
@@ -35,13 +36,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     // Apply theme on mount
     React.useEffect(() => {
         const root = document.documentElement;
-        if (theme === 'dark') {
-            root.classList.add('dark');
-        } else if (theme === 'light') {
-            root.classList.remove('dark');
-        } else {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            root.classList.toggle('dark', prefersDark);
+        root.classList.remove('dark', 'theme-midnight', 'theme-ocean', 'theme-forest', 'theme-royal');
+        if (theme === 'midnight') {
+            root.classList.add('dark', 'theme-midnight');
+        } else if (theme !== 'classic') {
+            root.classList.add(`theme-${theme}`);
         }
     }, [theme]);
 
@@ -232,13 +231,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             {language === 'en' ? 'हि' : 'EN'}
                         </button>
 
-                        <button
-                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                            className="p-2 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors"
-                            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                        >
-                            <Icon name={theme === 'dark' ? 'SunIcon' : 'MoonIcon'} size={20} />
-                        </button>
+                        <ThemeSelector />
 
                         <NotificationsMenu />
 

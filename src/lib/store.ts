@@ -176,8 +176,8 @@ interface AppState {
     historicalPrices: HistoricalPrice[];
     companyFinancials: CompanyFinancial[];
     homePageData: any;
-    theme: 'light' | 'dark' | 'system';
-    setTheme: (theme: 'light' | 'dark' | 'system') => void;
+    theme: 'classic' | 'midnight' | 'ocean' | 'forest' | 'royal';
+    setTheme: (theme: 'classic' | 'midnight' | 'ocean' | 'forest' | 'royal') => void;
     language: string;
     setLanguage: (lang: string) => void;
     addOrder: (order: ExtendedOrder) => void;
@@ -262,18 +262,16 @@ export const useAppStore = create<AppState>()(
             historicalPrices: [...MOCK_HISTORICAL_PRICES],
             companyFinancials: [],
             homePageData: HOME_PAGE_DATA,
-            theme: 'light' as 'light' | 'dark' | 'system',
+            theme: 'classic' as 'classic' | 'midnight' | 'ocean' | 'forest' | 'royal',
             setTheme: (theme) => {
                 set({ theme });
                 if (typeof window !== 'undefined') {
                     const root = document.documentElement;
-                    if (theme === 'dark') {
-                        root.classList.add('dark');
-                    } else if (theme === 'light') {
-                        root.classList.remove('dark');
-                    } else {
-                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        root.classList.toggle('dark', prefersDark);
+                    root.classList.remove('dark', 'theme-midnight', 'theme-ocean', 'theme-forest', 'theme-royal');
+                    if (theme === 'midnight') {
+                        root.classList.add('dark', 'theme-midnight');
+                    } else if (theme !== 'classic') {
+                        root.classList.add(`theme-${theme}`);
                     }
                 }
             },
