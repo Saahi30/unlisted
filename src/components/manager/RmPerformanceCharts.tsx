@@ -68,7 +68,7 @@ export default function RmPerformanceCharts({ rms }: { rms: RMPerformance[] }) {
                             <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--color-muted)' }} />
                             <YAxis tickFormatter={formatINR} tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
                             <Tooltip
-                                formatter={(value: number, name: string) => [formatINR(value), name === 'actual' ? 'Actual' : 'Target']}
+                                formatter={(value, name) => [formatINR(Number(value ?? 0)), name === 'actual' ? 'Actual' : 'Target']}
                                 contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 12 }}
                             />
                             <Legend
