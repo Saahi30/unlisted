@@ -41,7 +41,7 @@ export default function LeadManagementTab() {
         onboarded: leads.filter(l => l.status === 'onboarded').length,
     };
 
-    const totalPipelineValue = filteredLeads.reduce((sum, l) => sum + (l.quantity * l.price), 0);
+    const totalPipelineValue = filteredLeads.reduce((sum, l) => sum + ((l.quantity ?? 0) * (l.price ?? 0)), 0);
     const getRmName = (rmId?: string) => rmId ? (users.find(u => u.id === rmId)?.name || rmId.slice(0, 8)) : 'Unassigned';
     const getCompanyName = (companyId: string) => companies.find(c => c.id === companyId)?.name || companyId.slice(0, 8);
 
