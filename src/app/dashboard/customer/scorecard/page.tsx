@@ -68,7 +68,9 @@ function generateScorecard(company: Company, financials: CompanyFinancial[]): Sc
     if (change < -10) { riskScore -= 2; signals.push('Elevated risk — significant price decline'); }
     if (companyFinancials.length > 0) {
         const latest = companyFinancials[companyFinancials.length - 1];
-        if (latest.debtToEquity && latest.debtToEquity > 1.5) { riskScore -= 1; signals.push('High debt-to-equity ratio'); }
+        const equity = (latest.shareCapital ?? 0) + (latest.reserves ?? 0);
+        const debtToEquity = equity > 0 ? (latest.borrowings ?? 0) / equity : 0;
+        if (debtToEquity > 1.5) { riskScore -= 1; signals.push('High debt-to-equity ratio'); }
     }
     riskScore = Math.min(10, Math.max(1, Math.round(riskScore)));
 
