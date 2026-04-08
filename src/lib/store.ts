@@ -998,6 +998,33 @@ export const useAppStore = create<AppState>()(
                             priceValue: hp.price_value
                         }));
                         set({ historicalPrices: parsedPrices as HistoricalPrice[] });
+
+                        // Auto-compute change % from historical prices
+                        const currentCompanies = get().companies;
+                        if (currentCompanies.length > 0) {
+                            const updatedCompanies = currentCompanies.map(company => {
+                                const companyPrices = parsedPrices
+                                    .filter(p => p.companyId === company.id)
+                                    .sort((a, b) => a.priceDate.localeCompare(b.priceDate));
+                                if (companyPrices.length >= 2) {
+                                    const previousPrice = companyPrices[companyPrices.length - 2].priceValue;
+                                    const currentPrice = company.currentAskPrice || companyPrices[companyPrices.length - 1].priceValue;
+                                    if (previousPrice > 0) {
+                                        const changePct = ((currentPrice - previousPrice) / previousPrice) * 100;
+                                        return { ...company, change: `${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%`, positive: changePct >= 0 };
+                                    }
+                                } else if (companyPrices.length === 1) {
+                                    const previousPrice = companyPrices[0].priceValue;
+                                    const currentPrice = company.currentAskPrice;
+                                    if (previousPrice > 0 && currentPrice !== previousPrice) {
+                                        const changePct = ((currentPrice - previousPrice) / previousPrice) * 100;
+                                        return { ...company, change: `${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%`, positive: changePct >= 0 };
+                                    }
+                                }
+                                return company;
+                            });
+                            set({ companies: updatedCompanies as Company[] });
+                        }
                     }
                 } catch (error) {
                     console.error('Error fetching initial data from Supabase:', error);
