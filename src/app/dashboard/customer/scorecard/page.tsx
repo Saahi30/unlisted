@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/AppIcon';
 import { Company, CompanyFinancial } from '@/lib/mock-data';
+import { createClient } from '@/utils/supabase/client';
 
 interface Scorecard {
     companyId: string;
@@ -121,16 +122,50 @@ export default function ScorecardPage() {
     const { companies, companyFinancials } = useAppStore();
     const [sortBy, setSortBy] = useState<'overall' | 'ipo' | 'growth' | 'risk'>('overall');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [dbScores, setDbScores] = useState<Map<string, any>>(new Map());
+
+    const supabase = createClient();
+
+    useEffect(() => {
+        const fetchScores = async () => {
+            const { data } = await supabase.from('ipo_scores').select('*');
+            if (data && data.length > 0) {
+                const map = new Map(data.map((s: any) => [s.company_id, s]));
+                setDbScores(map);
+            }
+        };
+        fetchScores();
+    }, [supabase]);
 
     const scorecards = useMemo(() => {
-        const cards = companies.map(c => generateScorecard(c, companyFinancials));
+        const cards = companies.map(c => {
+            const dbScore = dbScores.get(c.id);
+            if (dbScore) {
+                // Use AI-researched scores (scale 0-100 to 1-10)
+                return {
+                    companyId: c.id,
+                    companyName: c.name,
+                    sector: c.sector,
+                    ipoLikelihood: Math.round(dbScore.ipo_likelihood / 10),
+                    growthPotential: Math.round(dbScore.growth_potential / 10),
+                    riskLevel: Math.round(dbScore.risk_level / 10),
+                    overallScore: Math.round(dbScore.overall_score / 10),
+                    signals: dbScore.ai_signals || [],
+                    status: c.status,
+                    valuation: c.valuation,
+                    price: c.currentAskPrice,
+                    change: c.change || '0%',
+                } as Scorecard;
+            }
+            return generateScorecard(c, companyFinancials);
+        });
         switch (sortBy) {
             case 'ipo': return cards.sort((a, b) => b.ipoLikelihood - a.ipoLikelihood);
             case 'growth': return cards.sort((a, b) => b.growthPotential - a.growthPotential);
             case 'risk': return cards.sort((a, b) => b.riskLevel - a.riskLevel);
             default: return cards.sort((a, b) => b.overallScore - a.overallScore);
         }
-    }, [companies, companyFinancials, sortBy]);
+    }, [companies, companyFinancials, sortBy, dbScores]);
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 max-w-5xl">

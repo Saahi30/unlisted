@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/AppIcon';
 import { useAuth } from '@/lib/auth-context';
 import { Company } from '@/lib/mock-data';
+import { createClient } from '@/utils/supabase/client';
 
 interface EarningsEvent {
     id: string;
@@ -81,11 +82,49 @@ export default function EarningsCalendarPage() {
     const { companies, orders } = useAppStore();
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
     const [filter, setFilter] = useState<'all' | 'tracked' | 'thisMonth'>('all');
+    const [dbEarnings, setDbEarnings] = useState<EarningsEvent[]>([]);
+
+    const supabase = createClient();
 
     const userOrders = orders.filter(o => o.userId === user?.id && o.status === 'in_holding');
     const heldCompanyIds = new Set(userOrders.map(o => o.companyId));
 
-    const events = useMemo(() => generateEarningsCalendar(companies, heldCompanyIds), [companies, heldCompanyIds]);
+    useEffect(() => {
+        const fetchEarnings = async () => {
+            const { data } = await supabase
+                .from('earnings_data')
+                .select('*, companies(name, sector, current_ask_price, change)')
+                .order('earnings_date', { ascending: true });
+            if (data && data.length > 0) {
+                setDbEarnings(data.map((e: any) => ({
+                    id: e.id,
+                    companyId: e.company_id,
+                    companyName: e.companies?.name || 'Unknown',
+                    sector: e.companies?.sector || '',
+                    date: e.earnings_date ? new Date(e.earnings_date).toISOString() : new Date().toISOString(),
+                    quarter: e.quarter,
+                    fiscalYear: e.fiscal_year,
+                    status: 'reported' as const,
+                    estimatedRevenue: e.revenue ? `₹${Number(e.revenue).toLocaleString()} Cr` : undefined,
+                    estimatedPat: e.pat ? `₹${Number(e.pat).toLocaleString()} Cr` : undefined,
+                    isTracked: heldCompanyIds.has(e.company_id),
+                    price: e.companies?.current_ask_price || 0,
+                    change: e.companies?.change || '0%',
+                })));
+            }
+        };
+        fetchEarnings();
+    }, [supabase, heldCompanyIds]);
+
+    const generatedEvents = useMemo(() => generateEarningsCalendar(companies, heldCompanyIds), [companies, heldCompanyIds]);
+
+    // Merge: DB earnings first, then generated (excluding companies already in DB)
+    const events = useMemo(() => {
+        if (dbEarnings.length === 0) return generatedEvents;
+        const dbCompanyIds = new Set(dbEarnings.map(e => e.companyId));
+        const remainingGenerated = generatedEvents.filter(e => !dbCompanyIds.has(e.companyId));
+        return [...dbEarnings, ...remainingGenerated].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [dbEarnings, generatedEvents]);
 
     const filteredEvents = useMemo(() => {
         let result = events;

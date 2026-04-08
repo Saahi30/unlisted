@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/market-intel",
+      "schedule": "40 1 * * *"
+    }
+  ]
+}

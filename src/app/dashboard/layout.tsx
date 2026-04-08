@@ -107,6 +107,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Blogs', href: '/dashboard/admin?tab=blogs', icon: 'NewspaperIcon' },
             { label: 'Notifications', href: '/dashboard/admin?tab=notifications', icon: 'BellIcon' },
             { label: 'Feedback', href: '/dashboard/admin?tab=feedback', icon: 'StarIcon' },
+            { label: 'Market Intel', href: '/dashboard/admin?tab=market_intel', icon: 'SparklesIcon' },
             { label: 'Audit Log', href: '/dashboard/admin?tab=audit_log', icon: 'ShieldCheckIcon' },
             { label: 'Settings', href: '/dashboard/admin?tab=settings', icon: 'Cog6ToothIcon' },
         ];

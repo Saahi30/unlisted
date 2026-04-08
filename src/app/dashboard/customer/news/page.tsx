@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/AppIcon';
 import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@/utils/supabase/client';
 
 interface NewsItem {
     id: string;
@@ -142,11 +143,43 @@ export default function NewsPage() {
     const { companies, blogs, orders } = useAppStore();
     const [filter, setFilter] = useState<'all' | 'portfolio' | 'ipo' | 'regulatory'>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [dbNews, setDbNews] = useState<NewsItem[]>([]);
+
+    const supabase = createClient();
+
+    useEffect(() => {
+        const fetchNews = async () => {
+            const { data } = await supabase
+                .from('market_news')
+                .select('*, companies(name, sector)')
+                .order('published_at', { ascending: false })
+                .limit(50);
+            if (data && data.length > 0) {
+                setDbNews(data.map((n: any) => ({
+                    id: n.id,
+                    title: n.title,
+                    summary: n.summary,
+                    source: n.source || 'AI Research',
+                    date: n.published_at,
+                    companyId: n.company_id,
+                    companyName: n.companies?.name,
+                    sector: n.companies?.sector,
+                    sentiment: n.sentiment === 'bullish' ? 'positive' : n.sentiment === 'bearish' ? 'negative' : 'neutral',
+                    category: n.category === 'market' ? 'general' : n.category as any,
+                    isBreaking: false,
+                })));
+            }
+        };
+        fetchNews();
+    }, [supabase]);
 
     const userOrders = orders.filter(o => o.userId === user?.id && o.status === 'in_holding');
     const heldCompanyIds = new Set(userOrders.map(o => o.companyId));
 
-    const allNews = useMemo(() => generateNewsFromData(companies, blogs, userOrders), [companies, blogs, userOrders]);
+    const generatedNews = useMemo(() => generateNewsFromData(companies, blogs, userOrders), [companies, blogs, userOrders]);
+
+    // Use DB news first, fall back to generated
+    const allNews = dbNews.length > 0 ? [...dbNews, ...generatedNews] : generatedNews;
 
     const filteredNews = useMemo(() => {
         let result = allNews;

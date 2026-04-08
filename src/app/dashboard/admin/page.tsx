@@ -23,6 +23,7 @@ import RmTargetTrackingTab from '@/components/admin/RmTargetTrackingTab';
 import AuditLogTab from '@/components/admin/AuditLogTab';
 import PriceHistoryCharts from '@/components/admin/PriceHistoryCharts';
 import AgentPerformanceTab from '@/components/admin/AgentPerformanceTab';
+import MarketIntelTab from '@/components/admin/MarketIntelTab';
 
 export default function AdminDashboardPage() {
     return (
@@ -47,11 +48,11 @@ function AdminDashboardContent() {
     } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat' | 'customer_kyc' | 'feedback' | 'analytics' | 'orders' | 'notifications' | 'leads' | 'rm_targets' | 'audit_log' | 'price_history' | 'agent_performance'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat' | 'customer_kyc' | 'feedback' | 'analytics' | 'orders' | 'notifications' | 'leads' | 'rm_targets' | 'audit_log' | 'price_history' | 'agent_performance' | 'market_intel'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['overview', 'companies', 'users', 'teams', 'blogs', 'settings', 'agents', 'demat', 'customer_kyc', 'feedback', 'analytics', 'orders', 'notifications', 'leads', 'rm_targets', 'audit_log', 'price_history', 'agent_performance'];
+        const validTabs = ['overview', 'companies', 'users', 'teams', 'blogs', 'settings', 'agents', 'demat', 'customer_kyc', 'feedback', 'analytics', 'orders', 'notifications', 'leads', 'rm_targets', 'audit_log', 'price_history', 'agent_performance', 'market_intel'];
         if (tab && validTabs.includes(tab)) {
             setActiveTab(tab as any);
         }
@@ -320,10 +321,10 @@ function AdminDashboardContent() {
             <div className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-display font-light tracking-tight text-foreground">
-                        {{ overview: 'Platform Overview', companies: 'Company Listings', users: 'User Directory', teams: 'Team Management', blogs: 'Blog Posts', agents: 'Agent Onboarding', customer_kyc: 'Customer KYC', feedback: 'Customer Feedback', settings: 'Portal Settings', orders: 'Order Management', analytics: 'Analytics Dashboard', notifications: 'Notifications', leads: 'Lead Pipeline', rm_targets: 'RM Targets', audit_log: 'Audit Log', price_history: 'Price History', agent_performance: 'Agent Performance', demat: 'Demat Requests' }[activeTab]}
+                        {{ overview: 'Platform Overview', companies: 'Company Listings', users: 'User Directory', teams: 'Team Management', blogs: 'Blog Posts', agents: 'Agent Onboarding', customer_kyc: 'Customer KYC', feedback: 'Customer Feedback', settings: 'Portal Settings', orders: 'Order Management', analytics: 'Analytics Dashboard', notifications: 'Notifications', leads: 'Lead Pipeline', rm_targets: 'RM Targets', audit_log: 'Audit Log', price_history: 'Price History', agent_performance: 'Agent Performance', demat: 'Demat Requests', market_intel: 'Market Intelligence'}[activeTab]}
                     </h1>
                     <p className="text-muted mt-1">
-                        {{ overview: 'Manage platform metrics and global orders.', companies: 'Add, edit or remove companies from the marketplace.', users: 'Manage platform access and user roles.', teams: 'Create teams and assign Relationship Managers.', blogs: 'Create, edit and publish articles for customers.', agents: 'Review and manage Partner Agent KYC submissions.', settings: 'Configure global parameters and Home Page CMS.', orders: 'Process orders, update statuses, and manage the transaction pipeline.', analytics: 'Revenue trends, conversion rates, and performance metrics.', notifications: 'Send and manage notifications to platform users.', leads: 'Bird\'s-eye view of the entire lead pipeline.', rm_targets: 'Set and track RM sales targets vs. quota.', audit_log: 'Track all admin actions for compliance.', price_history: 'Visualize and manage company price history data.', agent_performance: 'Agent-wise performance, earnings, and conversion rates.', customer_kyc: 'Review and approve customer KYC submissions.', feedback: 'View and manage customer feedback.', demat: 'Process dematerialization requests.' }[activeTab]}
+                        {{ overview: 'Manage platform metrics and global orders.', companies: 'Add, edit or remove companies from the marketplace.', users: 'Manage platform access and user roles.', teams: 'Create teams and assign Relationship Managers.', blogs: 'Create, edit and publish articles for customers.', agents: 'Review and manage Partner Agent KYC submissions.', settings: 'Configure global parameters and Home Page CMS.', orders: 'Process orders, update statuses, and manage the transaction pipeline.', analytics: 'Revenue trends, conversion rates, and performance metrics.', notifications: 'Send and manage notifications to platform users.', leads: 'Bird\'s-eye view of the entire lead pipeline.', rm_targets: 'Set and track RM sales targets vs. quota.', audit_log: 'Track all admin actions for compliance.', price_history: 'Visualize and manage company price history data.', agent_performance: 'Agent-wise performance, earnings, and conversion rates.', customer_kyc: 'Review and approve customer KYC submissions.', feedback: 'View and manage customer feedback.', demat: 'Process dematerialization requests.', market_intel: 'AI-powered news, IPO scores, and earnings data via Claude research.' }[activeTab]}
                     </p>
                 </div>
                 {(activeTab === 'overview' || activeTab === 'companies') && (
@@ -1150,6 +1151,8 @@ function AdminDashboardContent() {
             {activeTab === 'price_history' && <PriceHistoryCharts />}
 
             {activeTab === 'agent_performance' && <AgentPerformanceTab />}
+
+            {activeTab === 'market_intel' && <MarketIntelTab />}
 
             {/* Delivery Details Modal */}
             {deliveryOrderId && (
