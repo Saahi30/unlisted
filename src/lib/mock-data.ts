@@ -252,7 +252,7 @@ export const MOCK_ORDERS: Order[] = [
     }
 ];
 
-export type LeadStatus = 'new' | 'contacted' | 'kyc_pending' | 'onboarded';
+export type LeadStatus = 'new' | 'contacted' | 'kyc_pending' | 'onboarded' | 'converted';
 
 export interface Lead {
     id: string;
