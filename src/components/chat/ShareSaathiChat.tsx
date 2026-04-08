@@ -174,7 +174,7 @@ export default function ShareSaathiChat() {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {/* Chat Window */}
             {isOpen && (
-                <div className="bg-white border border-border rounded-2xl shadow-2xl w-80 md:w-96 mb-4 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
+                <div className="bg-surface-elevated border border-border rounded-2xl shadow-2xl w-80 md:w-96 mb-4 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
                     {/* Header */}
                     <div className="bg-primary text-white p-4 flex flex-col gap-2">
                         <div className="flex items-center justify-between">
@@ -245,7 +245,7 @@ export default function ShareSaathiChat() {
                             <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] p-3 rounded-2xl ${m.role === 'user'
                                     ? 'bg-foreground text-background rounded-tr-sm'
-                                    : 'bg-white border border-border shadow-sm rounded-tl-sm'
+                                    : 'bg-surface border border-border shadow-sm rounded-tl-sm'
                                     }`}>
                                     <div className="whitespace-pre-wrap leading-relaxed prose prose-sm dark:prose-invert">
                                         {m.content}
@@ -255,7 +255,7 @@ export default function ShareSaathiChat() {
                         ))}
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-white border border-border shadow-sm p-3 rounded-2xl rounded-tl-sm text-muted">
+                                <div className="bg-surface border border-border shadow-sm p-3 rounded-2xl rounded-tl-sm text-muted">
                                     <Icon name="ArrowPathIcon" size={14} className="animate-spin" />
                                 </div>
                             </div>
@@ -264,12 +264,12 @@ export default function ShareSaathiChat() {
                     </div>
 
                     {/* Input */}
-                    <form onSubmit={handleFormSubmit} className="p-3 bg-white border-t border-border flex gap-2">
+                    <form onSubmit={handleFormSubmit} className="p-3 bg-surface-elevated border-t border-border flex gap-2">
                         <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Ask ShareX..."
-                            className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                            className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-primary transition-colors"
                         />
                         <button
                             id="chat-submit-btn"
@@ -286,8 +286,8 @@ export default function ShareSaathiChat() {
             {/* Toggle Button / Expanding Pill */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`group relative overflow-hidden bg-slate-900 text-white shadow-2xl border border-white/10 transition-all duration-500 ease-out flex items-center h-14 ${isOpen
-                    ? 'w-48 px-4 rounded-2xl ring-2 ring-primary/20'
+                className={`group relative overflow-hidden bg-primary text-white shadow-2xl border border-white/10 transition-all duration-500 ease-out flex items-center h-14 ${isOpen
+                    ? 'w-48 px-4 rounded-2xl ring-2 ring-accent/20'
                     : 'w-14 rounded-full hover:w-48 px-0'
                     }`}
             >
@@ -301,15 +301,15 @@ export default function ShareSaathiChat() {
                             variant="solid"
                             size={28}
                             className={`transition-all duration-500 ${isOpen
-                                ? 'text-primary rotate-0 scale-100'
-                                : 'text-white group-hover:text-primary group-hover:rotate-12'
+                                ? 'text-accent rotate-0 scale-100'
+                                : 'text-white group-hover:text-accent group-hover:rotate-12'
                                 }`}
                         />
 
                         {/* Small Pulsing Indicator - only when closed */}
                         {!isOpen && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-slate-900">
-                                <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75" />
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full border-2 border-primary">
+                                <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-75" />
                             </div>
                         )}
                     </div>
