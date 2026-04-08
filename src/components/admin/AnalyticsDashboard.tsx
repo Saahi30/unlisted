@@ -71,7 +71,7 @@ export default function AnalyticsDashboard() {
     // Customer acquisition
     const customerCount = users.filter(u => u.role === 'customer').length;
     const leadCount = leads.length;
-    const convertedLeads = leads.filter(l => l.status === 'converted').length;
+    const convertedLeads = leads.filter(l => l.status === 'onboarded').length;
     const leadConversionRate = leadCount > 0 ? ((convertedLeads / leadCount) * 100).toFixed(1) : '0';
 
     // Status distribution
