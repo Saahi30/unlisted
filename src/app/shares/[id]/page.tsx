@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use, useState } from 'react';
+import React, { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,11 @@ import CompanyDetails from '@/components/CompanyDetails';
 
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { companies, historicalPrices, companyFinancials } = useAppStore();
+    const { companies, historicalPrices, companyFinancials, fetchInitialData } = useAppStore();
+
+    useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
     const [showChart, setShowChart] = useState(true);
     const company = companies.find(c => c.id === id);
 

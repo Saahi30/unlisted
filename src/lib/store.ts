@@ -1033,3 +1033,60 @@ export const useAppStore = create<AppState>()(
         }
     )
 );
+
+// Realtime subscription: sync company price changes across all clients
+supabase
+    .channel('companies-price-sync')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'companies' }, (payload) => {
+        const c = payload.new as any;
+        useAppStore.setState((state) => ({
+            companies: state.companies.map(existing =>
+                existing.id === c.id
+                    ? {
+                        ...existing,
+                        currentAskPrice: c.current_ask_price,
+                        currentBidPrice: c.current_bid_price,
+                        name: c.name,
+                        sector: c.sector,
+                        valuation: c.valuation,
+                        status: c.status,
+                        description: c.description || '',
+                        aiContext: c.ai_context || '',
+                        category: c.category,
+                        change: c.change,
+                        positive: c.positive,
+                        minInvest: c.min_invest,
+                        img: c.img,
+                        imgAlt: c.img_alt,
+                        isFeatured: c.is_featured,
+                    }
+                    : existing
+            )
+        }));
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'companies' }, (payload) => {
+        const c = payload.new as any;
+        const newCompany: Company = {
+            id: c.id,
+            name: c.name,
+            sector: c.sector,
+            valuation: c.valuation,
+            status: c.status,
+            currentAskPrice: c.current_ask_price,
+            currentBidPrice: c.current_bid_price,
+            description: c.description || '',
+            aiContext: c.ai_context || '',
+            category: c.category,
+            change: c.change,
+            positive: c.positive,
+            minInvest: c.min_invest,
+            img: c.img,
+            imgAlt: c.img_alt,
+            isFeatured: c.is_featured,
+        } as Company;
+        useAppStore.setState((state) => {
+            if (state.companies.some(existing => existing.id === c.id)) return state;
+            return { companies: [...state.companies, newCompany] };
+        });
+    })
+    .subscribe();
