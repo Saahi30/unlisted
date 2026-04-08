@@ -165,7 +165,7 @@ export default function PipelineForecast() {
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--color-muted)' }} />
                             <YAxis tickFormatter={formatINR} tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
-                            <Tooltip formatter={(v: number) => [formatINR(v), 'Volume']} contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 12 }} />
+                            <Tooltip formatter={(v) => [formatINR(Number(v ?? 0)), 'Volume']} contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 12 }} />
                             <Bar dataKey="value" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
