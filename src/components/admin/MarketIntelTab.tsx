@@ -88,14 +88,14 @@ export default function MarketIntelTab() {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'News Articles', value: stats.news, icon: 'NewspaperIcon', color: 'blue' },
-                    { label: 'IPO Scorecards', value: stats.ipoScores, icon: 'ChartBarIcon', color: 'green' },
-                    { label: 'Earnings Records', value: stats.earnings, icon: 'CurrencyRupeeIcon', color: 'amber' },
-                    { label: 'Last Updated', value: stats.lastUpdated, icon: 'ClockIcon', color: 'purple' },
+                    { label: 'News Articles', value: stats.news, icon: 'NewspaperIcon', bg: 'bg-blue-50', text: 'text-blue-600' },
+                    { label: 'IPO Scorecards', value: stats.ipoScores, icon: 'ChartBarIcon', bg: 'bg-green-50', text: 'text-green-600' },
+                    { label: 'Earnings Records', value: stats.earnings, icon: 'CurrencyRupeeIcon', bg: 'bg-amber-50', text: 'text-amber-600' },
+                    { label: 'Last Updated', value: stats.lastUpdated, icon: 'ClockIcon', bg: 'bg-purple-50', text: 'text-purple-600' },
                 ].map((s, i) => (
                     <Card key={i}>
                         <CardContent className="p-4 flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg bg-${s.color}-50 text-${s.color}-600 flex items-center justify-center`}>
+                            <div className={`w-10 h-10 rounded-lg ${s.bg} ${s.text} flex items-center justify-center`}>
                                 <Icon name={s.icon} size={20} />
                             </div>
                             <div>
