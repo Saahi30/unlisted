@@ -127,9 +127,9 @@ export default function LeadManagementTab() {
                                                 <div className="font-medium text-sm">{lead.name}</div>
                                                 <div className="text-xs text-muted">{lead.email}</div>
                                             </TableCell>
-                                            <TableCell className="text-sm">{getCompanyName(lead.companyId)}</TableCell>
+                                            <TableCell className="text-sm">{getCompanyName(lead.companyId ?? '')}</TableCell>
                                             <TableCell className="text-right font-medium">{lead.quantity}</TableCell>
-                                            <TableCell className="text-right font-semibold">₹{(lead.quantity * lead.price).toLocaleString()}</TableCell>
+                                            <TableCell className="text-right font-semibold">₹{((lead.quantity ?? 0) * (lead.price ?? 0)).toLocaleString()}</TableCell>
                                             <TableCell>
                                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${lead.kycStatus === 'verified' ? 'bg-green-50 text-green-600' : lead.kycStatus === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-600'}`}>
                                                     {lead.kycStatus || 'N/A'}
