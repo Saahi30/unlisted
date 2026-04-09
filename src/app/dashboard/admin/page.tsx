@@ -24,6 +24,7 @@ import AuditLogTab from '@/components/admin/AuditLogTab';
 import PriceHistoryCharts from '@/components/admin/PriceHistoryCharts';
 import AgentPerformanceTab from '@/components/admin/AgentPerformanceTab';
 import MarketIntelTab from '@/components/admin/MarketIntelTab';
+import MutualFundInterestsTab from '@/components/admin/MutualFundInterestsTab';
 
 export default function AdminDashboardPage() {
     return (
@@ -48,11 +49,11 @@ function AdminDashboardContent() {
     } = useAppStore();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat' | 'customer_kyc' | 'feedback' | 'analytics' | 'orders' | 'notifications' | 'leads' | 'rm_targets' | 'audit_log' | 'price_history' | 'agent_performance' | 'market_intel'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'users' | 'teams' | 'blogs' | 'settings' | 'agents' | 'demat' | 'customer_kyc' | 'feedback' | 'analytics' | 'orders' | 'notifications' | 'leads' | 'rm_targets' | 'audit_log' | 'price_history' | 'agent_performance' | 'market_intel' | 'mf_interests'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['overview', 'companies', 'users', 'teams', 'blogs', 'settings', 'agents', 'demat', 'customer_kyc', 'feedback', 'analytics', 'orders', 'notifications', 'leads', 'rm_targets', 'audit_log', 'price_history', 'agent_performance', 'market_intel'];
+        const validTabs = ['overview', 'companies', 'users', 'teams', 'blogs', 'settings', 'agents', 'demat', 'customer_kyc', 'feedback', 'analytics', 'orders', 'notifications', 'leads', 'rm_targets', 'audit_log', 'price_history', 'agent_performance', 'market_intel', 'mf_interests'];
         if (tab && validTabs.includes(tab)) {
             setActiveTab(tab as any);
         }
@@ -1153,6 +1154,8 @@ function AdminDashboardContent() {
             {activeTab === 'agent_performance' && <AgentPerformanceTab />}
 
             {activeTab === 'market_intel' && <MarketIntelTab />}
+
+            {activeTab === 'mf_interests' && <MutualFundInterestsTab />}
 
             {/* Delivery Details Modal */}
             {deliveryOrderId && (

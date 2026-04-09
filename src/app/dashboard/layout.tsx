@@ -88,6 +88,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { label: 'Export', href: '/dashboard/customer/export', icon: 'ArrowDownTrayIcon' },
         { label: 'Dematerialize', href: '/dashboard/customer/dematerialize', icon: 'DocumentArrowUpIcon' },
         { label: 'My Profile', href: '/dashboard/customer/profile', icon: 'UserCircleIcon' },
+        { label: 'Mutual Funds', href: '/dashboard/customer/mutual-funds', icon: 'BuildingLibraryIcon' },
         { label: 'Explore Shares', href: '/shares', icon: 'MagnifyingGlassIcon' },
     ];
 
@@ -111,6 +112,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Notifications', href: '/dashboard/admin?tab=notifications', icon: 'BellIcon' },
             { label: 'Feedback', href: '/dashboard/admin?tab=feedback', icon: 'StarIcon' },
             { label: 'Market Intel', href: '/dashboard/admin?tab=market_intel', icon: 'SparklesIcon' },
+            { label: 'MF Interests', href: '/dashboard/admin?tab=mf_interests', icon: 'BuildingLibraryIcon' },
             { label: 'Audit Log', href: '/dashboard/admin?tab=audit_log', icon: 'ShieldCheckIcon' },
             { label: 'Settings', href: '/dashboard/admin?tab=settings', icon: 'Cog6ToothIcon' },
         ];
