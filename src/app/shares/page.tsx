@@ -144,14 +144,14 @@ export default function SharesPage() {
                 <div className="mb-6">
                     <div className="flex gap-2">
                         <div className="relative flex-1">
-                            <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 pointer-events-none" />
+                            <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
                             <input
                                 type="text"
                                 value={nlQuery}
                                 onChange={e => setNlQuery(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleNlSearch()}
-                                placeholder="Ask AI: &quot;high-growth fintech under ₹500&quot; or &quot;companies likely to IPO soon&quot;..."
-                                className="w-full bg-gradient-to-r from-amber-50/50 to-orange-50/50 border border-amber-200 rounded-xl pl-10 pr-10 py-3 text-sm text-foreground placeholder:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-300 transition-all"
+                                placeholder='Search with AI: "high-growth fintech under ₹500" or "companies likely to IPO soon"...'
+                                className="w-full bg-surface border border-border rounded-xl pl-10 pr-10 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                             />
                             {nlQuery && (
                                 <button onClick={clearNlSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
@@ -162,7 +162,7 @@ export default function SharesPage() {
                         <Button
                             onClick={handleNlSearch}
                             disabled={nlLoading || !nlQuery.trim()}
-                            className="bg-amber-600 text-white hover:bg-amber-700 gap-2 rounded-xl px-5"
+                            className="bg-primary text-white hover:bg-primary/90 gap-2 rounded-xl px-5"
                         >
                             {nlLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                             {nlLoading ? 'Searching...' : 'AI Search'}
@@ -171,22 +171,22 @@ export default function SharesPage() {
                     {nlActive && nlFilters && (
                         <div className="mt-3 space-y-2">
                             {nlFilters.summary && (
-                                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                    <Sparkles className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                                    <p className="text-sm text-amber-800">{nlFilters.summary}</p>
+                                <div className="flex items-start gap-2 bg-surface border border-border rounded-lg px-3 py-2">
+                                    <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                    <p className="text-sm text-foreground">{nlFilters.summary}</p>
                                 </div>
                             )}
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-amber-700">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                                 <span className="font-medium">{filteredAndSortedCompanies.length} result{filteredAndSortedCompanies.length !== 1 ? 's' : ''}</span>
-                                {nlFilters.sectors?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Sectors: {nlFilters.sectors.join(', ')}</span>}
-                                {nlFilters.statuses?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Stage: {nlFilters.statuses.map((s: string) => s.replace('_', ' ')).join(', ')}</span>}
-                                {nlFilters.minPrice != null && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Min ₹{nlFilters.minPrice.toLocaleString()}</span>}
-                                {nlFilters.maxPrice != null && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Max ₹{nlFilters.maxPrice.toLocaleString()}</span>}
-                                {nlFilters.minIpoScore && <span className="px-2 py-0.5 bg-amber-100 rounded-full">IPO Score ≥{nlFilters.minIpoScore}</span>}
-                                {nlFilters.minGrowthScore && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Growth ≥{nlFilters.minGrowthScore}</span>}
-                                {nlFilters.sentiment && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Sentiment: {nlFilters.sentiment}</span>}
-                                {nlFilters.matchedCompanies?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">AI picked {nlFilters.matchedCompanies.length} companies</span>}
-                                <button onClick={clearNlSearch} className="ml-auto text-amber-600 hover:text-amber-800 font-semibold">Clear AI filter</button>
+                                {nlFilters.sectors?.length > 0 && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">Sectors: {nlFilters.sectors.join(', ')}</span>}
+                                {nlFilters.statuses?.length > 0 && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">Stage: {nlFilters.statuses.map((s: string) => s.replace('_', ' ')).join(', ')}</span>}
+                                {nlFilters.minPrice != null && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">Min ₹{nlFilters.minPrice.toLocaleString()}</span>}
+                                {nlFilters.maxPrice != null && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">Max ₹{nlFilters.maxPrice.toLocaleString()}</span>}
+                                {nlFilters.minIpoScore && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">IPO Score ≥{nlFilters.minIpoScore}</span>}
+                                {nlFilters.minGrowthScore && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">Growth ≥{nlFilters.minGrowthScore}</span>}
+                                {nlFilters.sentiment && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">Sentiment: {nlFilters.sentiment}</span>}
+                                {nlFilters.matchedCompanies?.length > 0 && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">AI picked {nlFilters.matchedCompanies.length} companies</span>}
+                                <button onClick={clearNlSearch} className="ml-auto text-primary hover:text-primary/80 font-semibold">Clear AI filter</button>
                             </div>
                         </div>
                     )}

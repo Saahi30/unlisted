@@ -138,11 +138,11 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
                         <CompanyDetails company={company} financials={companyFinancials} />
 
-                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-5">
-                            <h4 className="flex items-center font-semibold text-amber-900 dark:text-amber-300 mb-2">
-                                <ShieldAlert className="mr-2 h-5 w-5" /> Investment Risks
+                        <div className="bg-surface border border-border rounded-xl p-5">
+                            <h4 className="flex items-center font-semibold text-foreground mb-3">
+                                <ShieldAlert className="mr-2 h-5 w-5 text-muted" /> Investment Risks
                             </h4>
-                            <ul className="list-disc pl-5 text-sm text-amber-800 dark:text-amber-400 space-y-1">
+                            <ul className="list-disc pl-5 text-sm text-muted space-y-1.5">
                                 <li>Unlisted shares are illiquid and may take time to sell.</li>
                                 <li>There is no SEBI mandated investor protection fund for unlisted markets.</li>
                                 <li>Valuations can be subjective and vary significantly from listed equities.</li>
