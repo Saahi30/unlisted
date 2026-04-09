@@ -93,10 +93,10 @@ export default function CustomerDashboardPage() {
                     <h1 className="text-3xl font-display font-light tracking-tight text-foreground">My Portfolio</h1>
                     <p className="text-muted mt-1">Welcome back, {user.name}. Here is a summary of your unlisted investments.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col w-full md:w-auto md:flex-row gap-2 md:gap-3">
                     <Button
                         variant="ghost"
-                        className="text-primary hover:bg-primary/5 flex items-center gap-2 font-semibold"
+                        className="text-primary hover:bg-primary/5 flex items-center gap-2 font-semibold w-full md:w-auto"
                         onClick={() => {
                             window.dispatchEvent(new CustomEvent('sharesaathi-chat-trigger', {
                                 detail: {
@@ -109,10 +109,10 @@ export default function CustomerDashboardPage() {
                         <Icon name="CpuChipIcon" size={18} />
                         Analyze Portfolio
                     </Button>
-                    <Button variant="outline" className="border-border hover:bg-surface" asChild>
+                    <Button variant="outline" className="border-border hover:bg-surface w-full md:w-auto" asChild>
                         <Link href="/dashboard/customer/dematerialize">Physical to Digital</Link>
                     </Button>
-                    <Button className="bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20" asChild>
+                    <Button className="bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 w-full md:w-auto" asChild>
                         <Link href="/shares">Explore Listings</Link>
                     </Button>
                 </div>
@@ -172,135 +172,168 @@ export default function CustomerDashboardPage() {
                                 <p className="text-muted text-sm font-medium">No active orders or requests found.</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-surface/50 hover:bg-surface/50">
-                                            <TableHead className="text-muted font-semibold pl-6">Company / Type</TableHead>
-                                            <TableHead className="text-muted font-semibold">Date</TableHead>
-                                            <TableHead className="text-muted font-semibold">Details</TableHead>
-                                            <TableHead className="text-muted font-semibold">Status</TableHead>
-                                            <TableHead className="text-muted font-semibold text-right pr-6">Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {/* Show Buy/Sell Orders */}
-                                        {activeOrders.map(order => {
-                                            const comp = getCompany(order.companyId);
-                                            const isExpanded = selectedOrderId === order.id;
-                                            return (
-                                                <React.Fragment key={order.id}>
-                                                    <TableRow className={`border-border hover:bg-surface/30 cursor-pointer ${isExpanded ? 'bg-surface/30' : ''}`} onClick={() => setSelectedOrderId(isExpanded ? null : order.id)}>
-                                                        <TableCell className="pl-6">
-                                                            <div className="font-medium text-foreground">{comp?.name || order.companyName}</div>
-                                                            <div className="text-[10px] text-muted uppercase tracking-wider font-bold">Purchase</div>
-                                                        </TableCell>
-                                                        <TableCell className="text-muted">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                                                        <TableCell className="font-medium">{order.quantity} shares @ ₹{order.price.toLocaleString()}</TableCell>
-                                                        <TableCell>
-                                                            <span className={`inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md ${getStatusStyle(order.status)}`}>
-                                                                <Icon name="ClockIcon" size={12} className="mr-1" />
-                                                                {formatStatus(order.status)}
-                                                            </span>
-                                                        </TableCell>
-                                                        <TableCell className="text-right pr-6">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold"
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : order.id); }}
-                                                            >
-                                                                {isExpanded ? 'Hide' : 'Details'}
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                    {isExpanded && (
-                                                        <TableRow className="bg-slate-50/50">
-                                                            <TableCell colSpan={6} className="p-0 border-b">
-                                                                <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm animate-in fade-in slide-in-from-top-2">
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Order ID</div>
-                                                                        <div className="font-mono font-medium">{order.id}</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Payment Method</div>
-                                                                        <div className="font-medium capitalize">{order.paymentMethod?.replace('_', ' ') || 'direct'}</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Share Price</div>
-                                                                        <div className="font-medium">₹{order.price.toLocaleString()}</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Detailed Status</div>
-                                                                        <div className="font-medium capitalize">{order.status.replace('_', ' ')}</div>
-                                                                    </div>
-                                                                </div>
+                            <>
+                                {/* Desktop Table */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                                <TableHead className="text-muted font-semibold pl-6">Company / Type</TableHead>
+                                                <TableHead className="text-muted font-semibold">Date</TableHead>
+                                                <TableHead className="text-muted font-semibold">Details</TableHead>
+                                                <TableHead className="text-muted font-semibold">Status</TableHead>
+                                                <TableHead className="text-muted font-semibold text-right pr-6">Action</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {activeOrders.map(order => {
+                                                const comp = getCompany(order.companyId);
+                                                const isExpanded = selectedOrderId === order.id;
+                                                return (
+                                                    <React.Fragment key={order.id}>
+                                                        <TableRow className={`border-border hover:bg-surface/30 cursor-pointer ${isExpanded ? 'bg-surface/30' : ''}`} onClick={() => setSelectedOrderId(isExpanded ? null : order.id)}>
+                                                            <TableCell className="pl-6">
+                                                                <div className="font-medium text-foreground">{comp?.name || order.companyName}</div>
+                                                                <div className="text-[10px] text-muted uppercase tracking-wider font-bold">Purchase</div>
+                                                            </TableCell>
+                                                            <TableCell className="text-muted">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                                                            <TableCell className="font-medium">{order.quantity} shares @ ₹{order.price.toLocaleString()}</TableCell>
+                                                            <TableCell>
+                                                                <span className={`inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md ${getStatusStyle(order.status)}`}>
+                                                                    <Icon name="ClockIcon" size={12} className="mr-1" />
+                                                                    {formatStatus(order.status)}
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell className="text-right pr-6">
+                                                                <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold" onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : order.id); }}>
+                                                                    {isExpanded ? 'Hide' : 'Details'}
+                                                                </Button>
                                                             </TableCell>
                                                         </TableRow>
-                                                    )}
-                                                </React.Fragment>
-                                            )
-                                        })}
+                                                        {isExpanded && (
+                                                            <TableRow className="bg-slate-50/50">
+                                                                <TableCell colSpan={6} className="p-0 border-b">
+                                                                    <div className="p-6 grid grid-cols-4 gap-4 text-sm animate-in fade-in slide-in-from-top-2">
+                                                                        <div><div className="text-slate-500 mb-1 text-xs">Order ID</div><div className="font-mono font-medium">{order.id}</div></div>
+                                                                        <div><div className="text-slate-500 mb-1 text-xs">Payment Method</div><div className="font-medium capitalize">{order.paymentMethod?.replace('_', ' ') || 'direct'}</div></div>
+                                                                        <div><div className="text-slate-500 mb-1 text-xs">Share Price</div><div className="font-medium">₹{order.price.toLocaleString()}</div></div>
+                                                                        <div><div className="text-slate-500 mb-1 text-xs">Detailed Status</div><div className="font-medium capitalize">{order.status.replace('_', ' ')}</div></div>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </React.Fragment>
+                                                )
+                                            })}
+                                            {activeDematRequests.map(request => {
+                                                const isExpanded = selectedOrderId === request.id;
+                                                return (
+                                                    <React.Fragment key={request.id}>
+                                                        <TableRow className={`border-border hover:bg-surface/30 cursor-pointer ${isExpanded ? 'bg-surface/30' : ''}`} onClick={() => setSelectedOrderId(isExpanded ? null : request.id)}>
+                                                            <TableCell className="pl-6">
+                                                                <div className="font-medium text-foreground">{request.companyName}</div>
+                                                                <div className="text-[10px] text-primary uppercase tracking-wider font-bold">Dematerialization</div>
+                                                            </TableCell>
+                                                            <TableCell className="text-muted">{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                                                            <TableCell className="font-medium">{request.quantity} shares</TableCell>
+                                                            <TableCell>
+                                                                <span className={`inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md ${getStatusStyle(request.status)}`}>
+                                                                    <Icon name="DocumentTextIcon" size={12} className="mr-1" />
+                                                                    {formatStatus(request.status)}
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell className="text-right pr-6">
+                                                                <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold" onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : request.id); }}>
+                                                                    {isExpanded ? 'Hide' : 'Details'}
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                        {isExpanded && (
+                                                            <TableRow className="bg-slate-50/50">
+                                                                <TableCell colSpan={6} className="p-0 border-b">
+                                                                    <div className="p-6 grid grid-cols-4 gap-4 text-sm animate-in fade-in slide-in-from-top-2">
+                                                                        <div><div className="text-slate-500 mb-1 text-xs">Folio No.</div><div className="font-medium">{request.folioNumber}</div></div>
+                                                                        <div><div className="text-slate-500 mb-1 text-xs">Certificates</div><div className="font-medium truncate">{request.certificateNumbers}</div></div>
+                                                                        <div className="col-span-2"><div className="text-slate-500 mb-1 text-xs">Next Steps</div><div className="font-medium">{request.status === 'initiated' ? 'Courier physical certificates to our office.' : request.status === 'under_process' ? 'Internal processing in progress.' : 'Shares successfully credited to your Demat.'}</div></div>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </React.Fragment>
+                                                )
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
 
-                                        {/* Show Active Demat Requests */}
-                                        {activeDematRequests.map(request => {
-                                            const isExpanded = selectedOrderId === request.id;
-                                            return (
-                                                <React.Fragment key={request.id}>
-                                                    <TableRow className={`border-border hover:bg-surface/30 cursor-pointer ${isExpanded ? 'bg-surface/30' : ''}`} onClick={() => setSelectedOrderId(isExpanded ? null : request.id)}>
-                                                        <TableCell className="pl-6">
-                                                            <div className="font-medium text-foreground">{request.companyName}</div>
-                                                            <div className="text-[10px] text-primary uppercase tracking-wider font-bold">Dematerialization</div>
-                                                        </TableCell>
-                                                        <TableCell className="text-muted">{new Date(request.createdAt).toLocaleDateString()}</TableCell>
-                                                        <TableCell className="font-medium">{request.quantity} shares</TableCell>
-                                                        <TableCell>
-                                                            <span className={`inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md ${getStatusStyle(request.status)}`}>
-                                                                <Icon name="DocumentTextIcon" size={12} className="mr-1" />
-                                                                {formatStatus(request.status)}
-                                                            </span>
-                                                        </TableCell>
-                                                        <TableCell className="text-right pr-6">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold"
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : request.id); }}
-                                                            >
-                                                                {isExpanded ? 'Hide' : 'Details'}
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                    {isExpanded && (
-                                                        <TableRow className="bg-slate-50/50">
-                                                            <TableCell colSpan={6} className="p-0 border-b">
-                                                                <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm animate-in fade-in slide-in-from-top-2">
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Folio No.</div>
-                                                                        <div className="font-medium">{request.folioNumber}</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Certificates</div>
-                                                                        <div className="font-medium truncate">{request.certificateNumbers}</div>
-                                                                    </div>
-                                                                    <div className="md:col-span-2">
-                                                                        <div className="text-slate-500 mb-1 text-xs">Next Steps</div>
-                                                                        <div className="font-medium">
-                                                                            {request.status === 'initiated' ? 'Courier physical certificates to our office.' :
-                                                                                request.status === 'under_process' ? 'Internal processing in progress.' :
-                                                                                    'Shares successfully credited to your Demat.'}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    )}
-                                                </React.Fragment>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                {/* Mobile Cards */}
+                                <div className="md:hidden space-y-3 p-4">
+                                    {activeOrders.map(order => {
+                                        const comp = getCompany(order.companyId);
+                                        const isExpanded = selectedOrderId === order.id;
+                                        return (
+                                            <div key={order.id} className="border border-border rounded-xl p-4 bg-white" onClick={() => setSelectedOrderId(isExpanded ? null : order.id)}>
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div>
+                                                        <p className="font-medium text-foreground">{comp?.name || order.companyName}</p>
+                                                        <p className="text-[10px] text-muted uppercase tracking-wider font-bold">Purchase</p>
+                                                    </div>
+                                                    <span className={`inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md ${getStatusStyle(order.status)}`}>
+                                                        <Icon name="ClockIcon" size={12} className="mr-1" />
+                                                        {formatStatus(order.status)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between text-sm text-muted mb-1">
+                                                    <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                                                    <span className="font-medium text-foreground">{order.quantity} shares @ ₹{order.price.toLocaleString()}</span>
+                                                </div>
+                                                <button className="w-full text-center text-primary text-xs font-bold uppercase tracking-widest py-2 border-t border-border mt-2 min-h-[44px]">
+                                                    {isExpanded ? 'Hide Details' : 'View Details'}
+                                                </button>
+                                                {isExpanded && (
+                                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border text-sm animate-in fade-in slide-in-from-top-2">
+                                                        <div><div className="text-slate-500 mb-1 text-xs">Order ID</div><div className="font-mono font-medium text-xs break-all">{order.id}</div></div>
+                                                        <div><div className="text-slate-500 mb-1 text-xs">Payment</div><div className="font-medium capitalize text-xs">{order.paymentMethod?.replace('_', ' ') || 'direct'}</div></div>
+                                                        <div><div className="text-slate-500 mb-1 text-xs">Share Price</div><div className="font-medium text-xs">₹{order.price.toLocaleString()}</div></div>
+                                                        <div><div className="text-slate-500 mb-1 text-xs">Status</div><div className="font-medium capitalize text-xs">{order.status.replace('_', ' ')}</div></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {activeDematRequests.map(request => {
+                                        const isExpanded = selectedOrderId === request.id;
+                                        return (
+                                            <div key={request.id} className="border border-border rounded-xl p-4 bg-white" onClick={() => setSelectedOrderId(isExpanded ? null : request.id)}>
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div>
+                                                        <p className="font-medium text-foreground">{request.companyName}</p>
+                                                        <p className="text-[10px] text-primary uppercase tracking-wider font-bold">Dematerialization</p>
+                                                    </div>
+                                                    <span className={`inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md ${getStatusStyle(request.status)}`}>
+                                                        <Icon name="DocumentTextIcon" size={12} className="mr-1" />
+                                                        {formatStatus(request.status)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between text-sm text-muted mb-1">
+                                                    <span>{new Date(request.createdAt).toLocaleDateString()}</span>
+                                                    <span className="font-medium text-foreground">{request.quantity} shares</span>
+                                                </div>
+                                                <button className="w-full text-center text-primary text-xs font-bold uppercase tracking-widest py-2 border-t border-border mt-2 min-h-[44px]">
+                                                    {isExpanded ? 'Hide Details' : 'View Details'}
+                                                </button>
+                                                {isExpanded && (
+                                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border text-sm animate-in fade-in slide-in-from-top-2">
+                                                        <div><div className="text-slate-500 mb-1 text-xs">Folio No.</div><div className="font-medium text-xs">{request.folioNumber}</div></div>
+                                                        <div><div className="text-slate-500 mb-1 text-xs">Certificates</div><div className="font-medium text-xs truncate">{request.certificateNumbers}</div></div>
+                                                        <div className="col-span-2"><div className="text-slate-500 mb-1 text-xs">Next Steps</div><div className="font-medium text-xs">{request.status === 'initiated' ? 'Courier physical certificates to our office.' : request.status === 'under_process' ? 'Internal processing in progress.' : 'Shares successfully credited to your Demat.'}</div></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -323,100 +356,121 @@ export default function CustomerDashboardPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-surface/50 hover:bg-surface/50">
-                                            <TableHead className="text-muted font-semibold pl-6">Company</TableHead>
-                                            <TableHead className="text-muted font-semibold">Sector</TableHead>
-                                            <TableHead className="text-muted font-semibold">Shares Held</TableHead>
-                                            <TableHead className="text-muted font-semibold">Avg Cost</TableHead>
-                                            <TableHead className="text-muted font-semibold">Market Value</TableHead>
-                                            <TableHead className="text-muted font-semibold text-right pr-6">Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {holdingsList.map(holding => {
-                                            const comp = getCompany(holding.companyId);
-                                            const isExpanded = selectedOrderId === holding.companyId;
-                                            const avgCost = holding.totalInvested / holding.totalQuantity;
-                                            const marketValue = (comp?.currentAskPrice || avgCost) * holding.totalQuantity;
-                                            return (
-                                                <React.Fragment key={holding.companyId}>
-                                                    <TableRow className={`border-border hover:bg-surface/30 cursor-pointer ${isExpanded ? 'bg-surface/30' : ''}`} onClick={() => setSelectedOrderId(isExpanded ? null : holding.companyId)}>
-                                                        <TableCell className="font-medium text-foreground pl-6">{comp?.name || holding.companyName}</TableCell>
-                                                        <TableCell className="text-muted">{comp?.sector || 'Unknown'}</TableCell>
-                                                        <TableCell className="font-medium">{holding.totalQuantity}</TableCell>
-                                                        <TableCell className="text-muted">₹{avgCost.toLocaleString(undefined, { maximumFractionDigits: 1 })}</TableCell>
-                                                        <TableCell className="text-accent font-semibold">₹{marketValue.toLocaleString()}</TableCell>
-                                                        <TableCell className="text-right pr-6">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold"
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : holding.companyId); }}
-                                                            >
-                                                                {isExpanded ? 'Hide' : 'Details'}
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                    {isExpanded && (
-                                                        <TableRow className="bg-slate-50/50">
-                                                            <TableCell colSpan={6} className="p-0 border-b">
-                                                                <div className="p-6 text-sm animate-in fade-in slide-in-from-top-2">
-                                                                    <h4 className="font-semibold text-foreground mb-3 text-xs uppercase tracking-wider">Transaction History</h4>
-                                                                    <div className="space-y-3">
-                                                                        {holding.orders.map((order: any) => (
-                                                                            <div key={order.id} className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-3 rounded-lg border border-border">
-                                                                                <div>
-                                                                                    <div className="text-slate-500 mb-1 text-[10px] uppercase">Order ID</div>
-                                                                                    <div className="font-mono text-xs font-medium">{order.id}</div>
-                                                                                </div>
-                                                                                <div>
-                                                                                    <div className="text-slate-500 mb-1 text-[10px] uppercase">Quantity</div>
-                                                                                    <div className="text-xs font-medium">{order.quantity} @ ₹{order.price.toLocaleString()}</div>
-                                                                                </div>
-                                                                                {order.deliveryDetails && (
-                                                                                    <>
-                                                                                        <div>
-                                                                                            <div className="text-slate-500 mb-1 text-[10px] uppercase">ISIN</div>
-                                                                                            <div className="font-mono text-xs font-medium truncate">{order.deliveryDetails.isin}</div>
-                                                                                        </div>
-                                                                                        <div>
-                                                                                            <div className="text-slate-500 mb-1 text-[10px] uppercase">Transferred</div>
-                                                                                            <div className="text-xs font-medium">{order.deliveryDetails.date} at {order.deliveryDetails.time}</div>
-                                                                                        </div>
-                                                                                    </>
-                                                                                )}
-                                                                                {!order.deliveryDetails && (
-                                                                                    <div className="col-span-2">
-                                                                                        <div className="text-slate-500 mb-1 text-[10px] uppercase">Settled</div>
-                                                                                        <div className="text-xs font-medium">{new Date(order.createdAt).toLocaleDateString()}</div>
-                                                                                    </div>
-                                                                                )}
-                                                                                <div className="flex items-center justify-end">
-                                                                                    <Button
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 text-[10px] font-bold uppercase tracking-widest"
-                                                                                        onClick={(e) => { e.stopPropagation(); setFeedbackOrderId(order.id); }}
-                                                                                    >
-                                                                                        <Icon name="StarIcon" size={14} className="mr-1" /> Rate
-                                                                                    </Button>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
+                            <>
+                                {/* Desktop Table */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="bg-surface/50 hover:bg-surface/50">
+                                                <TableHead className="text-muted font-semibold pl-6">Company</TableHead>
+                                                <TableHead className="text-muted font-semibold">Sector</TableHead>
+                                                <TableHead className="text-muted font-semibold">Shares Held</TableHead>
+                                                <TableHead className="text-muted font-semibold">Avg Cost</TableHead>
+                                                <TableHead className="text-muted font-semibold">Market Value</TableHead>
+                                                <TableHead className="text-muted font-semibold text-right pr-6">Action</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {holdingsList.map(holding => {
+                                                const comp = getCompany(holding.companyId);
+                                                const isExpanded = selectedOrderId === holding.companyId;
+                                                const avgCost = holding.totalInvested / holding.totalQuantity;
+                                                const marketValue = (comp?.currentAskPrice || avgCost) * holding.totalQuantity;
+                                                return (
+                                                    <React.Fragment key={holding.companyId}>
+                                                        <TableRow className={`border-border hover:bg-surface/30 cursor-pointer ${isExpanded ? 'bg-surface/30' : ''}`} onClick={() => setSelectedOrderId(isExpanded ? null : holding.companyId)}>
+                                                            <TableCell className="font-medium text-foreground pl-6">{comp?.name || holding.companyName}</TableCell>
+                                                            <TableCell className="text-muted">{comp?.sector || 'Unknown'}</TableCell>
+                                                            <TableCell className="font-medium">{holding.totalQuantity}</TableCell>
+                                                            <TableCell className="text-muted">₹{avgCost.toLocaleString(undefined, { maximumFractionDigits: 1 })}</TableCell>
+                                                            <TableCell className="text-accent font-semibold">₹{marketValue.toLocaleString()}</TableCell>
+                                                            <TableCell className="text-right pr-6">
+                                                                <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold" onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : holding.companyId); }}>
+                                                                    {isExpanded ? 'Hide' : 'Details'}
+                                                                </Button>
                                                             </TableCell>
                                                         </TableRow>
-                                                    )}
-                                                </React.Fragment>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                                        {isExpanded && (
+                                                            <TableRow className="bg-slate-50/50">
+                                                                <TableCell colSpan={6} className="p-0 border-b">
+                                                                    <div className="p-6 text-sm animate-in fade-in slide-in-from-top-2">
+                                                                        <h4 className="font-semibold text-foreground mb-3 text-xs uppercase tracking-wider">Transaction History</h4>
+                                                                        <div className="space-y-3">
+                                                                            {holding.orders.map((order: any) => (
+                                                                                <div key={order.id} className="grid grid-cols-4 gap-4 bg-white p-3 rounded-lg border border-border">
+                                                                                    <div><div className="text-slate-500 mb-1 text-[10px] uppercase">Order ID</div><div className="font-mono text-xs font-medium">{order.id}</div></div>
+                                                                                    <div><div className="text-slate-500 mb-1 text-[10px] uppercase">Quantity</div><div className="text-xs font-medium">{order.quantity} @ ₹{order.price.toLocaleString()}</div></div>
+                                                                                    {order.deliveryDetails && (<><div><div className="text-slate-500 mb-1 text-[10px] uppercase">ISIN</div><div className="font-mono text-xs font-medium truncate">{order.deliveryDetails.isin}</div></div><div><div className="text-slate-500 mb-1 text-[10px] uppercase">Transferred</div><div className="text-xs font-medium">{order.deliveryDetails.date} at {order.deliveryDetails.time}</div></div></>)}
+                                                                                    {!order.deliveryDetails && (<div className="col-span-2"><div className="text-slate-500 mb-1 text-[10px] uppercase">Settled</div><div className="text-xs font-medium">{new Date(order.createdAt).toLocaleDateString()}</div></div>)}
+                                                                                    <div className="flex items-center justify-end">
+                                                                                        <Button variant="ghost" size="sm" className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => { e.stopPropagation(); setFeedbackOrderId(order.id); }}>
+                                                                                            <Icon name="StarIcon" size={14} className="mr-1" /> Rate
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </React.Fragment>
+                                                )
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                {/* Mobile Cards */}
+                                <div className="md:hidden space-y-3 p-4">
+                                    {holdingsList.map(holding => {
+                                        const comp = getCompany(holding.companyId);
+                                        const isExpanded = selectedOrderId === holding.companyId;
+                                        const avgCost = holding.totalInvested / holding.totalQuantity;
+                                        const marketValue = (comp?.currentAskPrice || avgCost) * holding.totalQuantity;
+                                        return (
+                                            <div key={holding.companyId} className="border border-border rounded-xl p-4 bg-white" onClick={() => setSelectedOrderId(isExpanded ? null : holding.companyId)}>
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <p className="font-semibold text-foreground">{comp?.name || holding.companyName}</p>
+                                                        <p className="text-xs text-muted">{comp?.sector || 'Unknown'}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-accent font-semibold">₹{marketValue.toLocaleString()}</p>
+                                                        <p className="text-[10px] text-muted">{holding.totalQuantity} shares</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between text-xs text-muted">
+                                                    <span>Avg Cost: ₹{avgCost.toLocaleString(undefined, { maximumFractionDigits: 1 })}</span>
+                                                </div>
+                                                <button className="w-full text-center text-primary text-xs font-bold uppercase tracking-widest py-2 border-t border-border mt-3 min-h-[44px]">
+                                                    {isExpanded ? 'Hide Details' : 'View Details'}
+                                                </button>
+                                                {isExpanded && (
+                                                    <div className="pt-3 border-t border-border text-sm animate-in fade-in slide-in-from-top-2">
+                                                        <h4 className="font-semibold text-foreground mb-3 text-xs uppercase tracking-wider">Transaction History</h4>
+                                                        <div className="space-y-3">
+                                                            {holding.orders.map((order: any) => (
+                                                                <div key={order.id} className="grid grid-cols-2 gap-3 bg-surface/50 p-3 rounded-lg border border-border">
+                                                                    <div><div className="text-slate-500 mb-1 text-[10px] uppercase">Order ID</div><div className="font-mono text-xs font-medium break-all">{order.id}</div></div>
+                                                                    <div><div className="text-slate-500 mb-1 text-[10px] uppercase">Quantity</div><div className="text-xs font-medium">{order.quantity} @ ₹{order.price.toLocaleString()}</div></div>
+                                                                    {order.deliveryDetails && (<><div><div className="text-slate-500 mb-1 text-[10px] uppercase">ISIN</div><div className="font-mono text-xs font-medium break-all">{order.deliveryDetails.isin}</div></div><div><div className="text-slate-500 mb-1 text-[10px] uppercase">Transferred</div><div className="text-xs font-medium">{order.deliveryDetails.date} at {order.deliveryDetails.time}</div></div></>)}
+                                                                    {!order.deliveryDetails && (<div className="col-span-2"><div className="text-slate-500 mb-1 text-[10px] uppercase">Settled</div><div className="text-xs font-medium">{new Date(order.createdAt).toLocaleDateString()}</div></div>)}
+                                                                    <div className="col-span-2 flex justify-end">
+                                                                        <Button variant="ghost" size="sm" className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 text-[10px] font-bold uppercase tracking-widest min-h-[44px]" onClick={(e) => { e.stopPropagation(); setFeedbackOrderId(order.id); }}>
+                                                                            <Icon name="StarIcon" size={14} className="mr-1" /> Rate
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -429,7 +483,8 @@ export default function CustomerDashboardPage() {
                             <CardDescription className="text-muted">History of successfully converted physical certificates.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0 bg-white">
-                            <div className="overflow-x-auto">
+                            {/* Desktop Table */}
+                            <div className="hidden md:block overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-surface/50 hover:bg-surface/50">
@@ -456,12 +511,7 @@ export default function CustomerDashboardPage() {
                                                             </span>
                                                         </TableCell>
                                                         <TableCell className="text-right pr-6">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold"
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : request.id); }}
-                                                            >
+                                                            <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5 text-xs tracking-widest uppercase font-bold" onClick={(e) => { e.stopPropagation(); setSelectedOrderId(isExpanded ? null : request.id); }}>
                                                                 {isExpanded ? 'Hide' : 'Details'}
                                                             </Button>
                                                         </TableCell>
@@ -469,19 +519,10 @@ export default function CustomerDashboardPage() {
                                                     {isExpanded && (
                                                         <TableRow className="bg-slate-50/50">
                                                             <TableCell colSpan={5} className="p-0 border-b">
-                                                                <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm animate-in fade-in slide-in-from-top-2">
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Folio Number</div>
-                                                                        <div className="font-medium">{request.folioNumber}</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="text-slate-500 mb-1 text-xs">Certificate Numbers</div>
-                                                                        <div className="font-medium">{request.certificateNumbers}</div>
-                                                                    </div>
-                                                                    <div className="md:col-span-2">
-                                                                        <div className="text-slate-500 mb-1 text-xs">Status Message</div>
-                                                                        <div className="font-medium text-green-600">The shares have been successfully credited to your linked Demat account.</div>
-                                                                    </div>
+                                                                <div className="p-6 grid grid-cols-4 gap-4 text-sm animate-in fade-in slide-in-from-top-2">
+                                                                    <div><div className="text-slate-500 mb-1 text-xs">Folio Number</div><div className="font-medium">{request.folioNumber}</div></div>
+                                                                    <div><div className="text-slate-500 mb-1 text-xs">Certificate Numbers</div><div className="font-medium">{request.certificateNumbers}</div></div>
+                                                                    <div className="col-span-2"><div className="text-slate-500 mb-1 text-xs">Status Message</div><div className="font-medium text-green-600">The shares have been successfully credited to your linked Demat account.</div></div>
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
@@ -491,6 +532,38 @@ export default function CustomerDashboardPage() {
                                         })}
                                     </TableBody>
                                 </Table>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="md:hidden space-y-3 p-4">
+                                {completedDematRequests.map(request => {
+                                    const isExpanded = selectedOrderId === request.id;
+                                    return (
+                                        <div key={request.id} className="border border-border rounded-xl p-4 bg-white" onClick={() => setSelectedOrderId(isExpanded ? null : request.id)}>
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div>
+                                                    <p className="font-medium text-foreground">{request.companyName}</p>
+                                                    <p className="text-xs text-muted">{new Date(request.createdAt).toLocaleDateString()}</p>
+                                                </div>
+                                                <span className="inline-flex items-center text-[10px] uppercase tracking-wide font-bold px-2 py-1 border rounded-md bg-green-50 text-green-600 border-green-100">
+                                                    <Icon name="CheckCircleIcon" size={12} className="mr-1" />
+                                                    Completed
+                                                </span>
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">{request.quantity} shares</p>
+                                            <button className="w-full text-center text-primary text-xs font-bold uppercase tracking-widest py-2 border-t border-border mt-3 min-h-[44px]">
+                                                {isExpanded ? 'Hide Details' : 'View Details'}
+                                            </button>
+                                            {isExpanded && (
+                                                <div className="grid grid-cols-1 gap-3 pt-3 border-t border-border text-sm animate-in fade-in slide-in-from-top-2">
+                                                    <div><div className="text-slate-500 mb-1 text-xs">Folio Number</div><div className="font-medium">{request.folioNumber}</div></div>
+                                                    <div><div className="text-slate-500 mb-1 text-xs">Certificate Numbers</div><div className="font-medium">{request.certificateNumbers}</div></div>
+                                                    <div><div className="text-slate-500 mb-1 text-xs">Status</div><div className="font-medium text-green-600">Shares credited to your linked Demat account.</div></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </CardContent>
                     </Card>

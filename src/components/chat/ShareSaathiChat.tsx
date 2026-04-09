@@ -171,10 +171,10 @@ export default function ShareSaathiChat() {
     if (!user) return null; // Only show for logged in users
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className={`fixed z-50 flex flex-col items-end ${isOpen ? 'inset-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-20 right-4 md:bottom-6 md:right-6'}`}>
             {/* Chat Window */}
             {isOpen && (
-                <div className="bg-surface-elevated border border-border rounded-2xl shadow-2xl w-80 md:w-96 mb-4 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
+                <div className="bg-surface-elevated border-0 md:border border-border rounded-none md:rounded-2xl shadow-2xl w-full h-full md:w-96 md:h-auto md:mb-4 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
                     {/* Header */}
                     <div className="bg-primary text-white p-4 flex flex-col gap-2">
                         <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export default function ShareSaathiChat() {
                     )}
 
                     {/* Messages */}
-                    <div className="flex-1 p-4 overflow-y-auto min-h-[300px] max-h-[400px] bg-surface/50 text-sm flex flex-col gap-3">
+                    <div className="flex-1 p-4 overflow-y-auto min-h-0 md:min-h-[300px] md:max-h-[400px] bg-surface/50 text-sm flex flex-col gap-3">
                         {messages.length === 0 && (
                             <div className="text-center text-muted text-xs my-auto p-4 border border-border border-dashed rounded-xl">
                                 Hi {user.name}, I'm ShareX, your pro investing AI. {selectedCompanyId !== 'general' ? `I'm loaded with exclusive insights on ${companies.find(c => c.id === selectedCompanyId)?.name}. Ask me anything.` : "Select a stock to discuss, or ask me about your portfolio."}
@@ -287,8 +287,8 @@ export default function ShareSaathiChat() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`group relative overflow-hidden bg-primary text-white shadow-2xl border border-white/10 transition-all duration-500 ease-out flex items-center h-14 ${isOpen
-                    ? 'w-48 px-4 rounded-2xl ring-2 ring-accent/20'
-                    : 'w-14 rounded-full hover:w-48 px-0'
+                    ? 'hidden md:flex w-48 px-4 rounded-2xl ring-2 ring-accent/20'
+                    : 'w-14 rounded-full md:hover:w-48 px-0'
                     }`}
             >
                 {/* Background Glow */}

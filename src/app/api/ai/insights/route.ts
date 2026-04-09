@@ -83,8 +83,7 @@ async function handleDigest(body: any) {
 async function handleSentiment(body: any) {
     const { companyId, companyName } = body;
 
-    const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createClient(cookies());
 
     // Fetch recent news for this company
     const query = supabase

@@ -107,7 +107,7 @@ export default function NotificationsMenu() {
         <div className="relative" ref={menuRef}>
             <button
                 onClick={toggleOpen}
-                className={`relative p-2 text-muted hover:text-foreground rounded-full hover:bg-surface transition-colors focus:outline-none ${hasNewPulse ? 'animate-pulse' : ''}`}
+                className={`relative p-2 text-muted hover:text-foreground rounded-full hover:bg-surface transition-colors focus:outline-none min-w-[44px] min-h-[44px] flex items-center justify-center ${hasNewPulse ? 'animate-pulse' : ''}`}
             >
                 <Icon name="BellIcon" size={20} />
                 {unreadCount > 0 && (

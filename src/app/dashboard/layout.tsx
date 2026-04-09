@@ -9,6 +9,7 @@ import { useAppStore } from '@/lib/store';
 import ShareSaathiChat from '@/components/chat/ShareSaathiChat';
 import NotificationsMenu from '@/components/ui/NotificationsMenu';
 import ThemeSelector from '@/components/ThemeSelector';
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <Suspense fallback={
@@ -222,20 +223,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 md:gap-6">
+                    <div className="flex items-center gap-2 md:gap-6">
                         <button
                             onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                            className="px-2 py-1 rounded-lg text-xs font-bold text-muted hover:text-foreground hover:bg-surface transition-colors border border-border"
+                            className="hidden md:inline-flex px-2 py-1 rounded-lg text-xs font-bold text-muted hover:text-foreground hover:bg-surface transition-colors border border-border"
                             title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
                         >
                             {language === 'en' ? 'हि' : 'EN'}
                         </button>
 
-                        <ThemeSelector />
+                        <div className="hidden md:block">
+                            <ThemeSelector />
+                        </div>
 
                         <NotificationsMenu />
 
-                        <div className="h-8 w-px bg-border" />
+                        <div className="hidden md:block h-8 w-px bg-border" />
 
                         <div className="flex items-center gap-3 cursor-pointer group">
                             <div className="relative">
@@ -256,7 +259,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                 </div>
                                 <p className="text-[10px] text-muted mt-1 uppercase tracking-wider">{portalType}</p>
                             </div>
-                            <Icon name="ChevronDownIcon" size={14} className="text-muted" />
+                            <Icon name="ChevronDownIcon" size={14} className="hidden md:block text-muted" />
                         </div>
                     </div>
                 </header>
@@ -285,24 +288,49 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                 </div>
                             </div>
 
+                            {/* Language & Theme — mobile sidebar only */}
+                            <div className="px-6 py-3 border-b border-border/50 flex items-center gap-3">
+                                <button
+                                    onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+                                    className="px-3 py-2 rounded-lg text-xs font-bold text-muted hover:text-foreground hover:bg-surface transition-colors border border-border min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                    title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+                                >
+                                    {language === 'en' ? 'हि Hindi' : 'EN English'}
+                                </button>
+                                <ThemeSelector />
+                            </div>
+
                             <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-1">
                                 {navItems.map((item, idx) => {
+                                    // Section labels for customer portal grouping
+                                    const isCustomer = pathname.includes('/customer') || (!pathname.includes('/admin') && !pathname.includes('/manager') && !pathname.includes('/sales') && !pathname.includes('/agent'));
+                                    let sectionLabel = null;
+                                    if (isCustomer) {
+                                        if (idx === 0) sectionLabel = 'INVESTING';
+                                        else if (idx === 8) sectionLabel = 'TRANSACTIONS';
+                                        else if (idx === 14) sectionLabel = 'TOOLS';
+                                        else if (idx === 22) sectionLabel = 'ACCOUNT';
+                                    }
                                     const search = searchParams.toString();
                                     const currentFull = search ? `${pathname}?${search}` : pathname;
                                     const isActive = currentFull === item.href || (item.href === pathname && !search);
                                     return (
-                                        <Link
-                                            key={idx}
-                                            href={item.href}
-                                            onClick={() => setSidebarOpen(false)}
-                                            className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                                                ? 'bg-primary/5 text-primary'
-                                                : 'text-muted hover:text-foreground hover:bg-surface'
-                                                }`}
-                                        >
-                                            <Icon name={item.icon} size={18} className={isActive ? 'text-primary' : 'text-muted'} />
-                                            {item.label}
-                                        </Link>
+                                        <React.Fragment key={idx}>
+                                            {sectionLabel && (
+                                                <p className="text-[9px] uppercase tracking-widest text-muted font-bold px-3 pt-4 pb-1">{sectionLabel}</p>
+                                            )}
+                                            <Link
+                                                href={item.href}
+                                                onClick={() => setSidebarOpen(false)}
+                                                className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${isActive
+                                                    ? 'bg-primary/5 text-primary'
+                                                    : 'text-muted hover:text-foreground hover:bg-surface'
+                                                    }`}
+                                            >
+                                                <Icon name={item.icon} size={18} className={isActive ? 'text-primary' : 'text-muted'} />
+                                                {item.label}
+                                            </Link>
+                                        </React.Fragment>
                                     );
                                 })}
                             </nav>
@@ -318,7 +346,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Page Content scrollable area */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-surface pb-12">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-surface pb-24 md:pb-12">
                     {children}
 
                     <div className="max-w-screen-xl mx-auto px-4 md:px-8 mt-12 mb-8">
@@ -334,6 +362,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
             {/* Global Chat AI attached to Dashboard */}
             <ShareSaathiChat />
+
+            {/* Mobile Bottom Navigation */}
+            <MobileBottomNav onOpenSidebar={() => setSidebarOpen(true)} />
         </div>
     );
 }
