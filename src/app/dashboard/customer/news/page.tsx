@@ -281,8 +281,8 @@ export default function NewsPage() {
                     </div>
                 ) : (
                     filteredNews.map(news => {
-                        const sentiment = sentimentConfig[news.sentiment];
-                        const category = categoryConfig[news.category];
+                        const sentiment = sentimentConfig[news.sentiment] || sentimentConfig.neutral;
+                        const category = categoryConfig[news.category] || categoryConfig.general;
                         const isPortfolioCompany = news.companyId && heldCompanyIds.has(news.companyId);
 
                         return (
