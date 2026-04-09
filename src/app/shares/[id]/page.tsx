@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, TrendingUp, ShieldAlert, LineChart } from 'lucide-react';
 import CompanyPriceChart from '@/components/CompanyPriceChart';
 import CompanyDetails from '@/components/CompanyDetails';
+import ShareSaathiChat from '@/components/chat/ShareSaathiChat';
 
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -199,6 +200,8 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                         </Card>
                     </div>
                 </div>
+                <ShareSaathiChat />
+
                 {/* Disclaimer at the bottom */}
                 <div className="mt-16 pt-8 border-t border-border text-[10px] md:text-xs text-muted leading-relaxed text-center">
                     <p>
