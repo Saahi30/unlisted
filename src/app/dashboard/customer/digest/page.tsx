@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,6 +84,45 @@ export default function DigestPage() {
         };
     }, [settledOrders, companies, historicalPrices, userOrders, blogs, activeOrders]);
 
+    const [aiSummary, setAiSummary] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+
+    const fetchAiDigest = useCallback(async () => {
+        if (digest.holdingsList.length === 0) return;
+        setAiLoading(true);
+        try {
+            const res = await fetch('/api/ai/insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'digest',
+                    portfolio: digest.holdingsList.map(h => ({
+                        name: h.name, qty: h.qty, invested: h.invested,
+                        currentPrice: h.currentPrice, weekChange: ((h.currentPrice - h.prevPrice) / h.prevPrice) * 100,
+                    })),
+                    movers: digest.movers.slice(0, 3).map(m => ({ name: m.name, weekChange: m.weekChange })),
+                    weeklyChange: digest.weeklyChange,
+                    totalPnL: digest.totalPnL,
+                    totalPnLPct: digest.totalPnLPct,
+                    activeOrders: digest.activeOrdersCount,
+                    sectors: digest.heldSectors,
+                }),
+            });
+            const data = await res.json();
+            setAiSummary(data.analysis || null);
+        } catch {
+            setAiSummary('Unable to generate AI summary. Please try again.');
+        } finally {
+            setAiLoading(false);
+        }
+    }, [digest]);
+
+    useEffect(() => {
+        if (digest.holdingsList.length > 0 && !aiSummary && !aiLoading) {
+            fetchAiDigest();
+        }
+    }, [digest.holdingsList.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 max-w-4xl">
             <div className="flex items-center gap-2 mb-1">
@@ -125,6 +164,39 @@ export default function DigestPage() {
                     </div>
                 </div>
             </Card>
+
+            {/* AI Weekly Briefing */}
+            {digest.holdingsList.length > 0 && (
+                <Card className="border-border shadow-sm mb-6 overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-50/60 to-orange-50/60 px-6 pt-5 pb-2">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Icon name="SparklesIcon" size={18} className="text-amber-600" />
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-amber-800">AI Weekly Briefing</p>
+                            </div>
+                            <button
+                                onClick={fetchAiDigest}
+                                disabled={aiLoading}
+                                className="text-[10px] font-semibold text-amber-700 hover:text-amber-900 disabled:opacity-50 transition-colors"
+                            >
+                                {aiLoading ? 'Generating...' : 'Refresh'}
+                            </button>
+                        </div>
+                    </div>
+                    <CardContent className="px-6 pb-5 pt-3">
+                        {aiLoading && !aiSummary ? (
+                            <div className="flex items-center gap-2 text-sm text-muted py-4 justify-center">
+                                <div className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                                Analyzing your portfolio...
+                            </div>
+                        ) : aiSummary ? (
+                            <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{aiSummary}</p>
+                        ) : (
+                            <p className="text-sm text-muted text-center py-2">Start investing to unlock your personalized AI digest.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Price Movers */}
             {digest.movers.length > 0 && (

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/market-intel",
       "schedule": "40 1 * * *"
+    },
+    {
+      "path": "/api/cron/generate-context",
+      "schedule": "10 2 * * *"
     }
   ]
 }

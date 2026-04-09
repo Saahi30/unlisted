@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft, Search, X, GitCompareArrows } from 'lucide-react';
+import { BadgeIndianRupee, TrendingUp, Building2, ChevronDown, ArrowUpDown, Filter, ArrowLeft, Search, X, GitCompareArrows, Sparkles, Loader2 } from 'lucide-react';
 
 export default function SharesPage() {
     const { companies, fetchInitialData } = useAppStore();
@@ -16,14 +16,70 @@ export default function SharesPage() {
     const [selectedSector, setSelectedSector] = useState<string>('All');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [nlQuery, setNlQuery] = useState('');
+    const [nlLoading, setNlLoading] = useState(false);
+    const [nlActive, setNlActive] = useState(false);
+    const [nlFilters, setNlFilters] = useState<any>(null);
 
     const sectors = useMemo(() => {
         const uniqueSectors = Array.from(new Set(companies.map(c => c.sector)));
         return ['All', ...uniqueSectors];
     }, [companies]);
 
+    const handleNlSearch = async () => {
+        if (!nlQuery.trim()) return;
+        setNlLoading(true);
+        setNlActive(true);
+        try {
+            const prices = companies.map(c => c.currentAskPrice);
+            const res = await fetch('/api/ai/insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'search',
+                    query: nlQuery,
+                    sectors: Array.from(new Set(companies.map(c => c.sector))),
+                    priceRange: { min: Math.min(...prices), max: Math.max(...prices) },
+                }),
+            });
+            const data = await res.json();
+            setNlFilters(data.filters || null);
+        } catch {
+            setNlFilters(null);
+        } finally {
+            setNlLoading(false);
+        }
+    };
+
+    const clearNlSearch = () => {
+        setNlQuery('');
+        setNlActive(false);
+        setNlFilters(null);
+    };
+
     const filteredAndSortedCompanies = useMemo(() => {
         let result = [...companies];
+
+        // Apply NL filters if active
+        if (nlActive && nlFilters) {
+            const f = nlFilters;
+            if (f.sectors?.length) {
+                result = result.filter(c => f.sectors.some((s: string) => c.sector.toLowerCase().includes(s.toLowerCase())));
+            }
+            if (f.minPrice != null) result = result.filter(c => c.currentAskPrice >= f.minPrice);
+            if (f.maxPrice != null) result = result.filter(c => c.currentAskPrice <= f.maxPrice);
+            if (f.minValuation != null) result = result.filter(c => c.valuation >= f.minValuation);
+            if (f.maxValuation != null) result = result.filter(c => c.valuation <= f.maxValuation);
+            if (f.keywords?.length) {
+                const kws = f.keywords.map((k: string) => k.toLowerCase());
+                result = result.filter(c =>
+                    kws.some((k: string) => c.name.toLowerCase().includes(k) || c.description.toLowerCase().includes(k) || c.sector.toLowerCase().includes(k))
+                );
+            }
+            if (f.sortBy === 'valuation') result.sort((a, b) => f.sortDir === 'asc' ? a.valuation - b.valuation : b.valuation - a.valuation);
+            if (f.sortBy === 'price') result.sort((a, b) => f.sortDir === 'asc' ? a.currentAskPrice - b.currentAskPrice : b.currentAskPrice - a.currentAskPrice);
+            return result;
+        }
 
         // Filter by name search
         if (searchQuery.trim()) {
@@ -43,7 +99,7 @@ export default function SharesPage() {
         }
 
         return result;
-    }, [companies, searchQuery, selectedSector, sortOrder]);
+    }, [companies, searchQuery, selectedSector, sortOrder, nlActive, nlFilters]);
 
     const toggleSort = () => {
         if (sortOrder === 'none') setSortOrder('desc');
@@ -57,6 +113,45 @@ export default function SharesPage() {
                 <Link href="/dashboard/customer" className="inline-flex items-center text-sm font-medium text-muted hover:text-accent mb-6 transition-colors">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
                 </Link>
+                {/* AI Natural Language Search */}
+                <div className="mb-6">
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={nlQuery}
+                                onChange={e => setNlQuery(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleNlSearch()}
+                                placeholder="Ask AI: &quot;high-growth fintech under ₹500&quot; or &quot;companies likely to IPO soon&quot;..."
+                                className="w-full bg-gradient-to-r from-amber-50/50 to-orange-50/50 border border-amber-200 rounded-xl pl-10 pr-10 py-3 text-sm text-foreground placeholder:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-300 transition-all"
+                            />
+                            {nlQuery && (
+                                <button onClick={clearNlSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                        <Button
+                            onClick={handleNlSearch}
+                            disabled={nlLoading || !nlQuery.trim()}
+                            className="bg-amber-600 text-white hover:bg-amber-700 gap-2 rounded-xl px-5"
+                        >
+                            {nlLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            {nlLoading ? 'Searching...' : 'AI Search'}
+                        </Button>
+                    </div>
+                    {nlActive && nlFilters && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-amber-700">
+                            <Sparkles className="h-3 w-3" />
+                            <span>AI filtered: showing {filteredAndSortedCompanies.length} result{filteredAndSortedCompanies.length !== 1 ? 's' : ''}</span>
+                            {nlFilters.sectors?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Sectors: {nlFilters.sectors.join(', ')}</span>}
+                            {nlFilters.maxPrice && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Max ₹{nlFilters.maxPrice.toLocaleString()}</span>}
+                            <button onClick={clearNlSearch} className="ml-auto text-amber-600 hover:text-amber-800 font-semibold">Clear AI filter</button>
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-foreground font-display mb-2">Unlisted Shares Catalog</h1>

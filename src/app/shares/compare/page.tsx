@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, X, ChevronDown, Plus } from 'lucide-react';
+import { ArrowLeft, X, ChevronDown, Plus, Sparkles, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const CHART_COLORS = ['#1C2B3A', '#C8A96E', '#3B82F6'];
@@ -15,6 +15,8 @@ export default function ComparePage() {
     const [selectedIds, setSelectedIds] = useState<(string | null)[]>([null, null, null]);
     const [openSlot, setOpenSlot] = useState<number | null>(null);
     const [search, setSearch] = useState('');
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
 
     useEffect(() => {
         fetchInitialData();
@@ -81,6 +83,35 @@ export default function ComparePage() {
     const getFinancials = (companyId: string) => {
         const fin = companyFinancials.filter(f => f.companyId === companyId);
         return fin.length > 0 ? fin[fin.length - 1] : null;
+    };
+
+    const fetchAiComparison = async () => {
+        if (activeCompanies.length < 2) return;
+        setAiLoading(true);
+        setAiAnalysis(null);
+        try {
+            const payload = activeCompanies.map(c => {
+                const fin = getFinancials(c.id);
+                return {
+                    name: c.name, sector: c.sector, valuation: c.valuation,
+                    askPrice: c.currentAskPrice, bidPrice: c.currentBidPrice,
+                    peRatio: c.peRatio, pbRatio: c.pbRatio, roe: c.roe,
+                    debtToEquity: c.debtToEquity, marketCap: c.marketCap,
+                    financials: fin ? { revenue: fin.revenue, pat: fin.pat, ebitda: fin.ebitda, eps: fin.eps } : null,
+                };
+            });
+            const res = await fetch('/api/ai/insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'compare', companies: payload }),
+            });
+            const data = await res.json();
+            setAiAnalysis(data.analysis || 'Unable to generate analysis.');
+        } catch {
+            setAiAnalysis('Failed to generate AI comparison. Please try again.');
+        } finally {
+            setAiLoading(false);
+        }
     };
 
     const financialMetrics = [
@@ -279,6 +310,39 @@ export default function ComparePage() {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* AI Comparison Analysis */}
+                    <Card className="border-border shadow-sm overflow-hidden">
+                        <CardHeader className="border-b border-border/50 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-amber-600" />
+                                    <CardTitle className="font-display text-lg font-medium">AI Comparison Analysis</CardTitle>
+                                </div>
+                                <Button
+                                    onClick={fetchAiComparison}
+                                    disabled={aiLoading}
+                                    size="sm"
+                                    className="bg-primary text-white hover:bg-primary/90 gap-2"
+                                >
+                                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                    {aiLoading ? 'Analyzing...' : aiAnalysis ? 'Regenerate' : 'Generate Analysis'}
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            {aiAnalysis ? (
+                                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{aiAnalysis}</p>
+                            ) : aiLoading ? (
+                                <div className="flex items-center justify-center py-8 text-muted">
+                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                    <span className="text-sm">Analyzing {activeCompanies.map(c => c.name).join(' vs ')}...</span>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted text-center py-4">Click &ldquo;Generate Analysis&rdquo; for an AI-powered narrative comparison of these companies.</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </>
             )}
 
