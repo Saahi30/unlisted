@@ -22,8 +22,9 @@ import AIDigest from '@/components/manager/AIDigest';
 import GoalWizard from '@/components/manager/GoalWizard';
 import RmOnboarding from '@/components/manager/RmOnboarding';
 import DocumentVault from '@/components/manager/DocumentVault';
+import ProfileTab from '@/components/shared/ProfileTab';
 
-type ManagerTab = 'overview' | 'leads' | 'transactions' | 'demat' | 'tickets' | 'activity' | 'commissions' | 'broadcast' | 'reports' | 'leaderboard' | 'forecast' | 'calendar' | 'audit' | 'digest' | 'goals' | 'onboarding' | 'documents';
+type ManagerTab = 'overview' | 'leads' | 'transactions' | 'demat' | 'tickets' | 'activity' | 'commissions' | 'broadcast' | 'reports' | 'leaderboard' | 'forecast' | 'calendar' | 'audit' | 'digest' | 'goals' | 'onboarding' | 'documents' | 'profile';
 
 interface RMPerformance {
     id: string;
@@ -53,6 +54,7 @@ const TAB_CONFIG: { id: ManagerTab; label: string; icon: string; section: 'core'
     { id: 'calendar', label: 'Calendar', icon: 'CalendarDaysIcon', section: 'tools' },
     { id: 'onboarding', label: 'Onboarding', icon: 'AcademicCapIcon', section: 'tools' },
     { id: 'audit', label: 'Audit Log', icon: 'ShieldCheckIcon', section: 'tools' },
+    { id: 'profile', label: 'My Profile', icon: 'UserCircleIcon', section: 'tools' },
 ];
 
 export default function ManagerDashboardPage() {
@@ -498,6 +500,7 @@ function ManagerDashboardContent() {
             {activeTab === 'goals' && <GoalWizard />}
             {activeTab === 'onboarding' && <RmOnboarding />}
             {activeTab === 'documents' && <DocumentVault />}
+            {activeTab === 'profile' && <ProfileTab roleLabel="Sales Manager" />}
 
             {/* ========== MODALS ========== */}
 

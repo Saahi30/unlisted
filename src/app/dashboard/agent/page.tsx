@@ -18,6 +18,7 @@ import AgentSupportChat from '@/components/agent/AgentSupportChat';
 import AgentMarketingTab from '@/components/agent/AgentMarketingTab';
 import AgentFeedbackTab from '@/components/agent/AgentFeedbackTab';
 import AgentOnboarding from '@/components/agent/AgentOnboarding';
+import ProfileTab from '@/components/shared/ProfileTab';
 
 export default function AgentDashboardPage() {
     const { user } = useAuth();
@@ -413,6 +414,7 @@ export default function AgentDashboardPage() {
             {activeTab === 'support' && isApproved && <AgentSupportChat />}
             {activeTab === 'marketing' && isApproved && <AgentMarketingTab currentTier={kycData?.current_tier || 'Bronze'} />}
             {activeTab === 'feedback' && isApproved && <AgentFeedbackTab />}
+            {activeTab === 'profile' && <ProfileTab roleLabel="Partner Agent" />}
         </div>
     );
 }

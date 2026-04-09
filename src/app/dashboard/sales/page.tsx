@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth-context';
 import { uploadPaymentProof } from '@/lib/upload';
 import { logAudit } from '@/lib/audit';
 import RmEscalationView from '@/components/manager/RmEscalationView';
+import ProfileTab from '@/components/shared/ProfileTab';
 
 export default function SalesDashboardPage() {
     return (
@@ -29,11 +30,11 @@ function SalesDashboardContent() {
     const { orders, leads, updateOrderStatus, addOrderNote, addLeadNote, updateLead, users } = useAppStore();
     const { user: authUser } = useAuth();
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'orders' | 'leads' | 'clients' | 'escalations'>('leads');
+    const [activeTab, setActiveTab] = useState<'orders' | 'leads' | 'clients' | 'escalations' | 'profile'>('leads');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'orders' || tab === 'leads' || tab === 'clients' || tab === 'escalations') {
+        if (tab === 'orders' || tab === 'leads' || tab === 'clients' || tab === 'escalations' || tab === 'profile') {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -504,6 +505,8 @@ function SalesDashboardContent() {
             {activeTab === 'escalations' && (
                 <RmEscalationView rmId={authUser?.id || ''} rmName={authUser?.name || ''} users={users} />
             )}
+
+            {activeTab === 'profile' && <ProfileTab roleLabel="Relationship Manager" />}
 
             {/* Deal Detail Dialog */}
             {selectedDealId && selectedDeal && (

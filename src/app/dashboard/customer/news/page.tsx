@@ -36,7 +36,7 @@ function generateNewsFromData(companies: any[], blogs: any[], orders: any[]): Ne
             news.push({
                 id: `news_ipo_${company.id}`,
                 title: `${company.name} IPO preparation intensifies — DRHP expected soon`,
-                summary: `${company.name}, valued at ₹${company.valuation.toLocaleString()} Cr, is reportedly in advanced stages of IPO preparation. The company has appointed investment banks and is expected to file its DRHP within the coming quarters.`,
+                summary: `${company.name}, valued at ₹${(company.valuation ?? 0).toLocaleString()} Cr, is reportedly in advanced stages of IPO preparation. The company has appointed investment banks and is expected to file its DRHP within the coming quarters.`,
                 source: 'ShareSaathi Intelligence',
                 date: new Date(now - idx * 86400000 * 2).toISOString(),
                 companyId: company.id,
@@ -52,7 +52,7 @@ function generateNewsFromData(companies: any[], blogs: any[], orders: any[]): Ne
             news.push({
                 id: `news_price_${company.id}`,
                 title: `${company.name} shares ${change > 0 ? 'surge' : 'drop'} ${company.change} in secondary market`,
-                summary: `Secondary market prices for ${company.name} have ${change > 0 ? 'risen sharply' : 'declined'} with current ask price at ₹${company.currentAskPrice.toLocaleString()}. ${change > 0 ? 'Strong demand from institutional investors is driving prices higher.' : 'Profit booking and sector rotation appear to be key drivers.'}`,
+                summary: `Secondary market prices for ${company.name} have ${change > 0 ? 'risen sharply' : 'declined'} with current ask price at ₹${(company.currentAskPrice ?? 0).toLocaleString()}. ${change > 0 ? 'Strong demand from institutional investors is driving prices higher.' : 'Profit booking and sector rotation appear to be key drivers.'}`,
                 source: 'Market Watch',
                 date: new Date(now - idx * 86400000 - 43200000).toISOString(),
                 companyId: company.id,
@@ -66,7 +66,7 @@ function generateNewsFromData(companies: any[], blogs: any[], orders: any[]): Ne
         news.push({
             id: `news_funding_${company.id}`,
             title: `${company.name} sector update: ${company.sector} sees renewed investor interest`,
-            summary: `The ${company.sector} sector continues to attract significant private equity and venture capital interest. ${company.name} with its current valuation of ₹${company.valuation.toLocaleString()} Cr remains a key player in this space.`,
+            summary: `The ${company.sector} sector continues to attract significant private equity and venture capital interest. ${company.name} with its current valuation of ₹${(company.valuation ?? 0).toLocaleString()} Cr remains a key player in this space.`,
             source: 'Sector Insights',
             date: new Date(now - (idx + 3) * 86400000).toISOString(),
             companyId: company.id,

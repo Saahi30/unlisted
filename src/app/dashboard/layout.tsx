@@ -115,6 +115,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'MF Interests', href: '/dashboard/admin?tab=mf_interests', icon: 'BuildingLibraryIcon' },
             { label: 'Audit Log', href: '/dashboard/admin?tab=audit_log', icon: 'ShieldCheckIcon' },
             { label: 'Settings', href: '/dashboard/admin?tab=settings', icon: 'Cog6ToothIcon' },
+            { label: 'My Profile', href: '/dashboard/admin?tab=profile', icon: 'UserCircleIcon' },
         ];
     } else if (pathname.includes('/manager')) {
         portalType = 'Sales Manager';
@@ -136,6 +137,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Calendar', href: '/dashboard/manager?tab=calendar', icon: 'CalendarDaysIcon' },
             { label: 'Onboarding', href: '/dashboard/manager?tab=onboarding', icon: 'AcademicCapIcon' },
             { label: 'Audit Log', href: '/dashboard/manager?tab=audit', icon: 'ShieldCheckIcon' },
+            { label: 'My Profile', href: '/dashboard/manager?tab=profile', icon: 'UserCircleIcon' },
         ];
     } else if (pathname.includes('/sales')) {
         portalType = 'Relationship Manager';
@@ -144,6 +146,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Clients', href: '/dashboard/sales?tab=clients', icon: 'UsersIcon' },
             { label: 'Deals', href: '/dashboard/sales?tab=orders', icon: 'BanknotesIcon' },
             { label: 'Escalations', href: '/dashboard/sales?tab=escalations', icon: 'ArrowUpCircleIcon' },
+            { label: 'My Profile', href: '/dashboard/sales?tab=profile', icon: 'UserCircleIcon' },
         ];
     } else if (pathname.includes('/agent')) {
         portalType = 'Partner Agent';
@@ -161,6 +164,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             { label: 'Leaderboard', href: '/dashboard/agent?tab=leaderboard', icon: 'ChartBarSquareIcon' },
             { label: 'Support Chat', href: '/dashboard/agent?tab=support', icon: 'ChatBubbleLeftRightIcon' },
             { label: 'KYC Profile', href: '/dashboard/agent?tab=kyc', icon: 'IdentificationIcon' },
+            { label: 'My Profile', href: '/dashboard/agent?tab=profile', icon: 'UserCircleIcon' },
         ];
     }
 
@@ -245,7 +249,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
                         <div className="hidden md:block h-8 w-px bg-border" />
 
-                        <Link href="/dashboard/customer/profile" className="flex items-center gap-3 cursor-pointer group">
+                        <Link href={
+                            pathname.includes('/admin') ? '/dashboard/admin?tab=profile' :
+                            pathname.includes('/manager') ? '/dashboard/manager?tab=profile' :
+                            pathname.includes('/sales') ? '/dashboard/sales?tab=profile' :
+                            pathname.includes('/agent') ? '/dashboard/agent?tab=profile' :
+                            '/dashboard/customer/profile'
+                        } className="flex items-center gap-3 cursor-pointer group">
                             <div className="relative">
                                 <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold font-display border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors uppercase">
                                     {user.name.charAt(0)}
