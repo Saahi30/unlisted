@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -237,6 +237,9 @@ export default function RiskPage() {
                 </div>
             </div>
 
+            {/* AI Deep Risk Analysis */}
+            <AiRiskReport userId={user?.id} hasHoldings={analysis.holdingsCount > 0} />
+
             {/* Rebalancing Suggestions */}
             {analysis.suggestions.length > 0 && (
                 <Card className="border-border shadow-sm mb-8">
@@ -356,5 +359,70 @@ export default function RiskPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+function AiRiskReport({ userId, hasHoldings }: { userId?: string; hasHoldings: boolean }) {
+    const [report, setReport] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const fetchReport = useCallback(async () => {
+        if (!userId || !hasHoldings) return;
+        setLoading(true);
+        try {
+            const res = await fetch('/api/ai/risk-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId }),
+            });
+            const data = await res.json();
+            setReport(data.analysis || null);
+        } catch {
+            setReport('Unable to generate AI risk report. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, [userId, hasHoldings]);
+
+    useEffect(() => {
+        if (hasHoldings && !report && !loading) {
+            fetchReport();
+        }
+    }, [hasHoldings]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!hasHoldings) return null;
+
+    return (
+        <Card className="border-border shadow-sm mb-8 overflow-hidden">
+            <div className="bg-gradient-to-r from-red-50/60 to-orange-50/60 px-6 pt-5 pb-2">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <Icon name="ShieldExclamationIcon" size={18} className="text-red-600" />
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-800">AI Deep Risk Analysis</p>
+                    </div>
+                    <button
+                        onClick={fetchReport}
+                        disabled={loading}
+                        className="text-[10px] font-semibold text-red-700 hover:text-red-900 disabled:opacity-50 transition-colors"
+                    >
+                        {loading ? 'Analyzing...' : 'Refresh'}
+                    </button>
+                </div>
+            </div>
+            <CardContent className="px-6 pb-5 pt-3">
+                {loading && !report ? (
+                    <div className="flex items-center gap-2 text-sm text-muted py-4 justify-center">
+                        <div className="h-4 w-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        Analyzing portfolio risk factors...
+                    </div>
+                ) : report ? (
+                    <div className="text-sm text-foreground leading-relaxed whitespace-pre-line prose prose-sm dark:prose-invert max-w-none">
+                        {report}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted text-center py-2">Loading risk analysis...</p>
+                )}
+            </CardContent>
+        </Card>
     );
 }

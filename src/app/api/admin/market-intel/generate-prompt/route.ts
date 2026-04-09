@@ -30,7 +30,7 @@ export async function POST() {
         ).join('\n');
 
         const { text: prompt } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
+            model: groq('openai/gpt-oss-20b'),
             prompt: `You are generating a comprehensive research prompt that an admin will paste into Claude AI (which has web search). The prompt must ask Claude to do deep research on each company individually.
 
 Today's date: ${today}

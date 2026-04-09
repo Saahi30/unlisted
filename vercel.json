@@ -7,6 +7,18 @@
     {
       "path": "/api/cron/generate-context",
       "schedule": "10 2 * * *"
+    },
+    {
+      "path": "/api/cron/auto-blog",
+      "schedule": "0 5 * * 1,4"
+    },
+    {
+      "path": "/api/cron/publish-blogs",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/peer-benchmark",
+      "schedule": "0 3 * * 0"
     }
   ]
 }

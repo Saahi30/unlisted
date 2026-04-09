@@ -70,7 +70,7 @@ export default function ThemeSelector() {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-surface-elevated border border-border rounded-xl shadow-lg p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-56 bg-surface-elevated border border-border rounded-xl shadow-lg p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <p className="text-[10px] uppercase tracking-widest text-muted font-bold px-3 py-2">Choose Theme</p>
                     {themes.map((t) => (
                         <button

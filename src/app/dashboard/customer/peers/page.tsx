@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -163,6 +163,9 @@ export default function PeersPage() {
                 </CardContent>
             </Card>
 
+            {/* AI Peer Benchmark */}
+            <PeerBenchmarkSection userId={user?.id} />
+
             {/* Peer Groups */}
             {peerGroups.length === 0 ? (
                 <div className="py-16 text-center">
@@ -240,5 +243,152 @@ export default function PeersPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+function PeerBenchmarkSection({ userId }: { userId?: string }) {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    const fetchBenchmark = useCallback(async () => {
+        if (!userId) return;
+        setLoading(true);
+        try {
+            const res = await fetch('/api/ai/peer-benchmark', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId }),
+            });
+            const result = await res.json();
+            setData(result);
+        } catch {
+            // silently fail
+        } finally {
+            setLoading(false);
+        }
+    }, [userId]);
+
+    useEffect(() => {
+        if (userId && !data && !loading) fetchBenchmark();
+    }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!data && !loading) return null;
+
+    const benchmark = data?.benchmark;
+    const userStats = data?.userStats;
+
+    return (
+        <Card className="border-border shadow-sm mb-8 overflow-hidden">
+            <div className="bg-gradient-to-r from-violet-50/60 to-purple-50/60 px-6 pt-5 pb-2">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <Icon name="ChartBarSquareIcon" size={18} className="text-violet-600" />
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-violet-800">AI Peer Benchmark</p>
+                    </div>
+                    <button
+                        onClick={fetchBenchmark}
+                        disabled={loading}
+                        className="text-[10px] font-semibold text-violet-700 hover:text-violet-900 disabled:opacity-50 transition-colors"
+                    >
+                        {loading ? 'Loading...' : 'Refresh'}
+                    </button>
+                </div>
+            </div>
+            <CardContent className="p-6">
+                {loading && !data ? (
+                    <div className="flex items-center gap-2 text-sm text-muted py-4 justify-center">
+                        <div className="h-4 w-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                        Analyzing peer portfolios...
+                    </div>
+                ) : data ? (
+                    <div className="space-y-5">
+                        {/* Stats comparison */}
+                        {benchmark && userStats && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="bg-white rounded-xl p-3 border border-border">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Your Portfolio</p>
+                                    <p className="text-lg font-bold text-foreground">₹{userStats.totalInvested.toLocaleString()}</p>
+                                    <p className="text-[10px] text-muted">Avg: ₹{benchmark.avg_portfolio_size.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-white rounded-xl p-3 border border-border">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Your Holdings</p>
+                                    <p className="text-lg font-bold text-foreground">{userStats.companiesHeld} companies</p>
+                                    <p className="text-[10px] text-muted">Avg: {benchmark.avg_holdings_count}</p>
+                                </div>
+                                <div className="bg-white rounded-xl p-3 border border-border">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Diversification</p>
+                                    <p className={`text-lg font-bold ${userStats.diversificationLevel === 'high' ? 'text-green-600' : userStats.diversificationLevel === 'medium' ? 'text-amber-600' : 'text-red-600'}`}>
+                                        {userStats.diversificationLevel.charAt(0).toUpperCase() + userStats.diversificationLevel.slice(1)}
+                                    </p>
+                                    <p className="text-[10px] text-muted">{benchmark.total_investors} investors tracked</p>
+                                </div>
+                                <div className="bg-white rounded-xl p-3 border border-border">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Your Sectors</p>
+                                    <p className="text-lg font-bold text-foreground">{Object.keys(userStats.sectors).length}</p>
+                                    <p className="text-[10px] text-muted">{Object.keys(userStats.sectors).join(', ').slice(0, 30)}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Sector comparison bars */}
+                        {benchmark && userStats && (
+                            <div>
+                                <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Sector Allocation: You vs Peers</p>
+                                <div className="space-y-2">
+                                    {Object.entries(benchmark.sector_distribution as Record<string, number>)
+                                        .sort((a, b) => b[1] - a[1])
+                                        .slice(0, 6)
+                                        .map(([sector, peerPct]) => {
+                                            const userPct = userStats.sectors[sector] || 0;
+                                            return (
+                                                <div key={sector}>
+                                                    <div className="flex items-center justify-between text-xs mb-1">
+                                                        <span className="text-foreground font-medium">{sector}</span>
+                                                        <span className="text-muted">You: {userPct}% · Peers: {peerPct}%</span>
+                                                    </div>
+                                                    <div className="flex gap-1 h-2">
+                                                        <div className="bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, userPct)}%` }} />
+                                                        <div className="bg-violet-200 rounded-full transition-all" style={{ width: `${Math.min(100, peerPct)}%` }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    <div className="flex items-center gap-4 mt-2 text-[10px] text-muted">
+                                        <span className="flex items-center gap-1"><span className="w-3 h-2 bg-primary rounded-full inline-block" /> You</span>
+                                        <span className="flex items-center gap-1"><span className="w-3 h-2 bg-violet-200 rounded-full inline-block" /> Peers</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Top companies held by peers */}
+                        {benchmark?.top_companies && (benchmark.top_companies as any[]).length > 0 && (
+                            <div>
+                                <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Most Popular Among Investors</p>
+                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                    {((benchmark.top_companies as any[]) || []).slice(0, 6).map((c: any, idx: number) => (
+                                        <div key={c.id || idx} className="shrink-0 bg-white border border-border rounded-lg px-3 py-2 min-w-[120px]">
+                                            <p className="text-xs font-semibold text-foreground truncate">{c.name}</p>
+                                            <p className="text-[10px] text-muted">{c.investorPct}% of investors hold</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* AI Analysis */}
+                        {data.analysis && (
+                            <div className="bg-violet-50/50 border border-violet-100 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Icon name="SparklesIcon" size={14} className="text-violet-600" />
+                                    <p className="text-[10px] uppercase tracking-widest font-bold text-violet-800">AI Comparison</p>
+                                </div>
+                                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{data.analysis}</p>
+                            </div>
+                        )}
+                    </div>
+                ) : null}
+            </CardContent>
+        </Card>
     );
 }

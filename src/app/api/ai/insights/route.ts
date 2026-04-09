@@ -114,7 +114,7 @@ async function handleSentiment(body: any) {
     const newsStr = news.map(n => `[${n.sentiment}] ${n.title}`).join('\n');
 
     const { text } = await generateText({
-        model: groq('llama-3.3-70b-versatile'),
+        model: groq('openai/gpt-oss-20b'),
         system: `You are a market sentiment analyst. Summarize news sentiment in 80-100 words. Structure: 1) Overall mood (1 line), 2) Key bullish/bearish drivers, 3) Outlook. Be direct. No disclaimers.`,
         prompt: `${companyName ? `Company: ${companyName}\n` : 'Market-wide\n'}Recent headlines:\n${newsStr}`,
     });
@@ -122,19 +122,56 @@ async function handleSentiment(body: any) {
     return Response.json({ analysis: text, stats });
 }
 
-// ── Search: natural language → filters ──
+// ── Search: natural language → filters + AI summary ──
 async function handleSearch(body: any) {
-    const { query, sectors, priceRange } = body;
+    const { query, sectors, priceRange, companies } = body;
     // sectors: available sector names, priceRange: { min, max } of all companies
+    // companies: array of { name, sector, status, valuation, price, description }
+
+    const supabase = await createClient(cookies());
+
+    // Fetch IPO scores and sentiment data to enrich search context
+    const [{ data: ipoScores }, { data: recentNews }] = await Promise.all([
+        supabase.from('ipo_scores').select('company_id, ipo_likelihood, growth_potential, risk_level, overall_score, ai_signals'),
+        supabase.from('market_news').select('company_id, sentiment').order('published_at', { ascending: false }).limit(100),
+    ]);
+
+    // Build sentiment map per company
+    const sentimentMap: Record<string, { bullish: number; bearish: number; neutral: number }> = {};
+    (recentNews || []).forEach((n: any) => {
+        if (!n.company_id) return;
+        if (!sentimentMap[n.company_id]) sentimentMap[n.company_id] = { bullish: 0, bearish: 0, neutral: 0 };
+        if (n.sentiment === 'bullish') sentimentMap[n.company_id].bullish++;
+        else if (n.sentiment === 'bearish') sentimentMap[n.company_id].bearish++;
+        else sentimentMap[n.company_id].neutral++;
+    });
+
+    // Build IPO score map
+    const ipoMap: Record<string, any> = {};
+    (ipoScores || []).forEach((s: any) => { ipoMap[s.company_id] = s; });
+
+    // Build compact catalog: name + scores only (~15 tokens per company)
+    const catalogStr = (companies || []).map((c: any) => {
+        const ipo = ipoMap[c.id];
+        const sent = sentimentMap[c.id];
+        let line = `${c.name}|${c.sector}|${c.status}|${c.price}`;
+        if (ipo) line += `|I${ipo.ipo_likelihood}G${ipo.growth_potential}R${ipo.risk_level}`;
+        if (sent) {
+            const total = sent.bullish + sent.bearish + sent.neutral;
+            if (total > 0) line += `|${sent.bullish}b${sent.bearish}r`;
+        }
+        return line;
+    }).join('\n');
 
     const { text } = await generateText({
-        model: groq('llama-3.3-70b-versatile'),
-        system: `You translate natural language investment queries into JSON filters. Available sectors: ${(sectors || []).join(', ')}. Price range: ₹${priceRange?.min || 0}-₹${priceRange?.max || 999999}.
+        model: groq('openai/gpt-oss-20b'),
+        system: `Translate investment queries into JSON filters. Sectors: ${(sectors || []).join(', ')}. Prices: ₹${priceRange?.min || 0}-${priceRange?.max || 999999}. Statuses: pre_seed,seed,series_a,series_b,series_c,pre_ipo.
 
-Return ONLY valid JSON with these optional fields:
-{"sectors":["sector1"],"maxPrice":number,"minPrice":number,"minValuation":number,"maxValuation":number,"sortBy":"valuation"|"price","sortDir":"asc"|"desc","keywords":["word1"]}
+Catalog (Name|Sector|Status|Price|I=IPO G=Growth R=Risk scores 1-10|Sentiment b=bull r=bear):
+${catalogStr}
 
-"keywords" = name/description search terms. Omit fields that aren't relevant. No explanation, just JSON.`,
+Return ONLY JSON. Optional fields: sectors[], maxPrice, minPrice, minValuation, maxValuation, sortBy("valuation"|"price"), sortDir("asc"|"desc"), keywords[], statuses[], sentiment("bullish"|"bearish"), minIpoScore, minGrowthScore, maxRiskLevel, matchedCompanies[] (EXACT names from catalog for semantic matches), summary (1 sentence, only for ambiguous queries).
+Prefer matchedCompanies over keywords. Omit irrelevant fields.`,
         prompt: query,
     });
 

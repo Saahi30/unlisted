@@ -64,6 +64,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { label: 'Market Map', href: '/dashboard/customer/market-map', icon: 'MapIcon' },
         { label: 'News Feed', href: '/dashboard/customer/news', icon: 'NewspaperIcon' },
         { label: 'IPO Scorecard', href: '/dashboard/customer/scorecard', icon: 'SparklesIcon' },
+        { label: 'Deep Dive', href: '/dashboard/customer/deep-dive', icon: 'DocumentMagnifyingGlassIcon' },
+        { label: 'What-If Simulator', href: '/dashboard/customer/whatif', icon: 'BeakerIcon' },
         { label: 'Peer Compare', href: '/dashboard/customer/peers', icon: 'UserGroupIcon' },
         { label: 'Earnings', href: '/dashboard/customer/earnings', icon: 'CalendarDaysIcon' },
         { label: 'Risk & Rebalance', href: '/dashboard/customer/risk', icon: 'ShieldCheckIcon' },
@@ -85,6 +87,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { label: 'Nominees', href: '/dashboard/customer/nominee', icon: 'UsersIcon' },
         { label: 'Export', href: '/dashboard/customer/export', icon: 'ArrowDownTrayIcon' },
         { label: 'Dematerialize', href: '/dashboard/customer/dematerialize', icon: 'DocumentArrowUpIcon' },
+        { label: 'My Profile', href: '/dashboard/customer/profile', icon: 'UserCircleIcon' },
         { label: 'Explore Shares', href: '/shares', icon: 'MagnifyingGlassIcon' },
     ];
 
@@ -240,7 +243,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
                         <div className="hidden md:block h-8 w-px bg-border" />
 
-                        <div className="flex items-center gap-3 cursor-pointer group">
+                        <Link href="/dashboard/customer/profile" className="flex items-center gap-3 cursor-pointer group">
                             <div className="relative">
                                 <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold font-display border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors uppercase">
                                     {user.name.charAt(0)}
@@ -260,7 +263,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                 <p className="text-[10px] text-muted mt-1 uppercase tracking-wider">{portalType}</p>
                             </div>
                             <Icon name="ChevronDownIcon" size={14} className="hidden md:block text-muted" />
-                        </div>
+                        </Link>
                     </div>
                 </header>
 

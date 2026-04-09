@@ -40,6 +40,10 @@ export default function SharesPage() {
                     query: nlQuery,
                     sectors: Array.from(new Set(companies.map(c => c.sector))),
                     priceRange: { min: Math.min(...prices), max: Math.max(...prices) },
+                    companies: companies.map(c => ({
+                        id: c.id, name: c.name, sector: c.sector, status: c.status,
+                        valuation: c.valuation, price: c.currentAskPrice, description: c.description,
+                    })),
                 }),
             });
             const data = await res.json();
@@ -63,21 +67,44 @@ export default function SharesPage() {
         // Apply NL filters if active
         if (nlActive && nlFilters) {
             const f = nlFilters;
+
+            // Priority 1: If AI matched specific companies by name, use those directly
+            if (f.matchedCompanies?.length) {
+                const matched = f.matchedCompanies.map((n: string) => n.toLowerCase());
+                const directMatches = result.filter(c => matched.some((m: string) => c.name.toLowerCase().includes(m) || m.includes(c.name.toLowerCase())));
+                // If we got good direct matches, use them; otherwise fall through to filters
+                if (directMatches.length > 0) {
+                    result = directMatches;
+                }
+            }
+
+            // Apply sector filter
             if (f.sectors?.length) {
                 result = result.filter(c => f.sectors.some((s: string) => c.sector.toLowerCase().includes(s.toLowerCase())));
             }
+            // Apply status filter (pre_ipo, series_c, etc.)
+            if (f.statuses?.length) {
+                result = result.filter(c => f.statuses.some((s: string) => c.status.toLowerCase() === s.toLowerCase()));
+            }
+            // Apply price filters
             if (f.minPrice != null) result = result.filter(c => c.currentAskPrice >= f.minPrice);
             if (f.maxPrice != null) result = result.filter(c => c.currentAskPrice <= f.maxPrice);
+            // Apply valuation filters
             if (f.minValuation != null) result = result.filter(c => c.valuation >= f.minValuation);
             if (f.maxValuation != null) result = result.filter(c => c.valuation <= f.maxValuation);
-            if (f.keywords?.length) {
+            // Keyword fallback for text search
+            if (f.keywords?.length && !f.matchedCompanies?.length) {
                 const kws = f.keywords.map((k: string) => k.toLowerCase());
                 result = result.filter(c =>
                     kws.some((k: string) => c.name.toLowerCase().includes(k) || c.description.toLowerCase().includes(k) || c.sector.toLowerCase().includes(k))
                 );
             }
-            if (f.sortBy === 'valuation') result.sort((a, b) => f.sortDir === 'asc' ? a.valuation - b.valuation : b.valuation - a.valuation);
-            if (f.sortBy === 'price') result.sort((a, b) => f.sortDir === 'asc' ? a.currentAskPrice - b.currentAskPrice : b.currentAskPrice - a.currentAskPrice);
+
+            // Sort by various criteria
+            const dir = f.sortDir === 'asc' ? 1 : -1;
+            if (f.sortBy === 'valuation') result.sort((a, b) => dir * (a.valuation - b.valuation));
+            else if (f.sortBy === 'price') result.sort((a, b) => dir * (a.currentAskPrice - b.currentAskPrice));
+
             return result;
         }
 
@@ -142,12 +169,25 @@ export default function SharesPage() {
                         </Button>
                     </div>
                     {nlActive && nlFilters && (
-                        <div className="flex items-center gap-2 mt-2 text-xs text-amber-700">
-                            <Sparkles className="h-3 w-3" />
-                            <span>AI filtered: showing {filteredAndSortedCompanies.length} result{filteredAndSortedCompanies.length !== 1 ? 's' : ''}</span>
-                            {nlFilters.sectors?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Sectors: {nlFilters.sectors.join(', ')}</span>}
-                            {nlFilters.maxPrice && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Max ₹{nlFilters.maxPrice.toLocaleString()}</span>}
-                            <button onClick={clearNlSearch} className="ml-auto text-amber-600 hover:text-amber-800 font-semibold">Clear AI filter</button>
+                        <div className="mt-3 space-y-2">
+                            {nlFilters.summary && (
+                                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                    <Sparkles className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                                    <p className="text-sm text-amber-800">{nlFilters.summary}</p>
+                                </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-amber-700">
+                                <span className="font-medium">{filteredAndSortedCompanies.length} result{filteredAndSortedCompanies.length !== 1 ? 's' : ''}</span>
+                                {nlFilters.sectors?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Sectors: {nlFilters.sectors.join(', ')}</span>}
+                                {nlFilters.statuses?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Stage: {nlFilters.statuses.map((s: string) => s.replace('_', ' ')).join(', ')}</span>}
+                                {nlFilters.minPrice != null && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Min ₹{nlFilters.minPrice.toLocaleString()}</span>}
+                                {nlFilters.maxPrice != null && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Max ₹{nlFilters.maxPrice.toLocaleString()}</span>}
+                                {nlFilters.minIpoScore && <span className="px-2 py-0.5 bg-amber-100 rounded-full">IPO Score ≥{nlFilters.minIpoScore}</span>}
+                                {nlFilters.minGrowthScore && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Growth ≥{nlFilters.minGrowthScore}</span>}
+                                {nlFilters.sentiment && <span className="px-2 py-0.5 bg-amber-100 rounded-full">Sentiment: {nlFilters.sentiment}</span>}
+                                {nlFilters.matchedCompanies?.length > 0 && <span className="px-2 py-0.5 bg-amber-100 rounded-full">AI picked {nlFilters.matchedCompanies.length} companies</span>}
+                                <button onClick={clearNlSearch} className="ml-auto text-amber-600 hover:text-amber-800 font-semibold">Clear AI filter</button>
+                            </div>
                         </div>
                     )}
                 </div>

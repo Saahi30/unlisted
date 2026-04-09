@@ -55,7 +55,7 @@ export async function POST() {
 
         // Use Groq to structure the search results into our JSON format
         const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
+            model: groq('openai/gpt-oss-20b'),
             prompt: `You are a financial data analyst. Based on the web search results below, extract and structure data about Indian unlisted/pre-IPO companies.
 
 OUR TRACKED COMPANIES:

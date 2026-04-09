@@ -12,6 +12,15 @@ interface Conversation {
     updated_at: string;
 }
 
+interface OrderIntent {
+    companyId: string;
+    companyName: string;
+    type: 'buy' | 'sell';
+    quantity: number;
+    price: number;
+    sector: string;
+}
+
 export default function ShareSaathiChat() {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('general');
@@ -21,14 +30,16 @@ export default function ShareSaathiChat() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const [input, setInput] = useState('');
-
-    const [messages, setMessages] = useState<{ id: string, role: 'user' | 'assistant', content: string }[]>([]);
+    const [messages, setMessages] = useState<{ id: string, role: 'user' | 'assistant', content: string, toolData?: any }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     // Chat history state
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
+
+    // Order intent state
+    const [orderIntent, setOrderIntent] = useState<OrderIntent | null>(null);
 
     // Load conversations list
     useEffect(() => {
@@ -64,6 +75,7 @@ export default function ShareSaathiChat() {
         setMessages([]);
         setActiveConversationId(null);
         setShowHistory(false);
+        setOrderIntent(null);
     };
 
     const saveMessages = async (userMsg: string, assistantMsg: string) => {
@@ -94,16 +106,14 @@ export default function ShareSaathiChat() {
         }
     };
 
-    // Listen for external chat triggers (e.g. from Dashboard Portfolio button)
+    // Listen for external chat triggers
     useEffect(() => {
         const handleTrigger = (event: any) => {
             const { message, companyId } = event.detail || {};
             setIsOpen(true);
             if (companyId) setSelectedCompanyId(companyId);
             if (message) {
-                // Clear and send if needed, or just set input
                 setInput(message);
-                // Auto-submit if we want immediate analysis
                 setTimeout(() => {
                     const submitBtn = document.getElementById('chat-submit-btn');
                     submitBtn?.click();
@@ -115,6 +125,23 @@ export default function ShareSaathiChat() {
         return () => window.removeEventListener('sharesaathi-chat-trigger', handleTrigger);
     }, []);
 
+    // Parse tool results from streamed text
+    const parseToolResults = (text: string) => {
+        // Check for order intent in the response
+        const orderMatch = text.match(/"action"\s*:\s*"ORDER_INTENT"/);
+        if (orderMatch) {
+            try {
+                const jsonMatch = text.match(/\{[^{}]*"orderData"[^{}]*\{[^{}]*\}[^{}]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.orderData) {
+                        setOrderIntent(parsed.orderData);
+                    }
+                }
+            } catch { /* ignore parse errors */ }
+        }
+    };
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
@@ -124,6 +151,7 @@ export default function ShareSaathiChat() {
         setMessages(newMessages);
         setInput('');
         setIsLoading(true);
+        setOrderIntent(null);
 
         try {
             const res = await fetch('/api/chat', {
@@ -155,6 +183,10 @@ export default function ShareSaathiChat() {
                     prev.map(m => m.id === assistantMsg.id ? { ...assistantMsg } : m)
                 );
             }
+
+            // Check for tool results in the response
+            parseToolResults(assistantMsg.content);
+
             // Save to DB
             saveMessages(userMsg.content, assistantMsg.content);
         } catch (error) {
@@ -164,11 +196,17 @@ export default function ShareSaathiChat() {
         }
     };
 
+    const handleOrderConfirm = () => {
+        if (!orderIntent) return;
+        // Navigate to shares page with order pre-filled
+        window.location.href = `/shares/${orderIntent.companyId}?action=${orderIntent.type}&qty=${orderIntent.quantity}`;
+    };
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    if (!user) return null; // Only show for logged in users
+    if (!user) return null;
 
     return (
         <div className={`fixed z-50 flex flex-col items-end ${isOpen ? 'inset-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-20 right-4 md:bottom-6 md:right-6'}`}>
@@ -181,6 +219,7 @@ export default function ShareSaathiChat() {
                             <div className="flex items-center gap-2">
                                 <Icon name="CpuChipIcon" size={18} variant="solid" className="text-white/90" />
                                 <span className="font-bold tracking-tight">ShareX AI</span>
+                                <span className="text-[9px] bg-white/20 rounded-full px-2 py-0.5 font-medium">RAG + Tools</span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <button onClick={() => setShowHistory(!showHistory)} className="text-white/80 hover:text-white transition-colors p-1" title="Chat history">
@@ -239,13 +278,25 @@ export default function ShareSaathiChat() {
                         {messages.length === 0 && (
                             <div className="text-center text-muted text-xs my-auto p-4 border border-border border-dashed rounded-xl">
                                 Hi {user.name}, I'm ShareX, your pro investing AI. {selectedCompanyId !== 'general' ? `I'm loaded with exclusive insights on ${companies.find(c => c.id === selectedCompanyId)?.name}. Ask me anything.` : "Select a stock to discuss, or ask me about your portfolio."}
+                                <div className="mt-3 space-y-1.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted/70">Try saying:</p>
+                                    <button onClick={() => setInput('I want to buy 50 shares of Swiggy')} className="block w-full text-left px-3 py-1.5 rounded-lg bg-surface hover:bg-primary/5 text-xs text-muted hover:text-primary transition-colors border border-border/50">
+                                        "I want to buy 50 shares of Swiggy"
+                                    </button>
+                                    <button onClick={() => setInput('What if NSDL IPOs at 2x valuation?')} className="block w-full text-left px-3 py-1.5 rounded-lg bg-surface hover:bg-primary/5 text-xs text-muted hover:text-primary transition-colors border border-border/50">
+                                        "What if NSDL IPOs at 2x valuation?"
+                                    </button>
+                                    <button onClick={() => setInput('Tell me about HDB Financial')} className="block w-full text-left px-3 py-1.5 rounded-lg bg-surface hover:bg-primary/5 text-xs text-muted hover:text-primary transition-colors border border-border/50">
+                                        "Tell me about HDB Financial"
+                                    </button>
+                                </div>
                             </div>
                         )}
                         {messages.map(m => (
                             <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] p-3 rounded-2xl ${m.role === 'user'
                                     ? 'bg-foreground text-background rounded-tr-sm'
-                                    : 'bg-surface border border-border shadow-sm rounded-tl-sm'
+                                    : 'bg-surface border border-border shadow-sm rounded-tl-sm text-foreground'
                                     }`}>
                                     <div className="whitespace-pre-wrap leading-relaxed prose prose-sm dark:prose-invert">
                                         {m.content}
@@ -260,6 +311,38 @@ export default function ShareSaathiChat() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Order Intent Card */}
+                        {orderIntent && (
+                            <div className="mx-auto w-full max-w-[90%] p-3 rounded-xl border-2 border-primary/30 bg-primary/5 animate-in slide-in-from-bottom-2">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Icon name="ShoppingCartIcon" size={16} className="text-primary" />
+                                    <span className="text-xs font-bold text-primary uppercase tracking-wider">Order Ready</span>
+                                </div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-foreground">{orderIntent.type.toUpperCase()} {orderIntent.companyName}</p>
+                                        <p className="text-xs text-muted">{orderIntent.quantity} shares @ ₹{orderIntent.price.toLocaleString()}</p>
+                                    </div>
+                                    <p className="text-sm font-bold text-foreground">₹{(orderIntent.quantity * orderIntent.price).toLocaleString()}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleOrderConfirm}
+                                        className="flex-1 bg-primary text-white text-xs font-bold py-2 px-3 rounded-lg hover:bg-primary/90 transition-colors"
+                                    >
+                                        Proceed to Order
+                                    </button>
+                                    <button
+                                        onClick={() => setOrderIntent(null)}
+                                        className="px-3 py-2 text-xs font-medium text-muted border border-border rounded-lg hover:bg-surface transition-colors"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div ref={messagesEndRef} />
                     </div>
 
@@ -268,7 +351,7 @@ export default function ShareSaathiChat() {
                         <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask ShareX..."
+                            placeholder="Ask ShareX... (try: buy 50 Swiggy shares)"
                             className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-primary transition-colors"
                         />
                         <button
@@ -283,7 +366,7 @@ export default function ShareSaathiChat() {
                 </div>
             )}
 
-            {/* Toggle Button / Expanding Pill */}
+            {/* Toggle Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`group relative overflow-hidden bg-primary text-white shadow-2xl border border-white/10 transition-all duration-500 ease-out flex items-center h-14 ${isOpen
@@ -291,9 +374,7 @@ export default function ShareSaathiChat() {
                     : 'w-14 rounded-full md:hover:w-48 px-0'
                     }`}
             >
-                {/* Background Glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-transparent opacity-50" />
-
                 <div className="flex items-center gap-3 w-full justify-start pl-[13px]">
                     <div className="relative shrink-0 flex items-center justify-center">
                         <Icon
@@ -305,22 +386,18 @@ export default function ShareSaathiChat() {
                                 : 'text-white group-hover:text-accent group-hover:rotate-12'
                                 }`}
                         />
-
-                        {/* Small Pulsing Indicator - only when closed */}
                         {!isOpen && (
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full border-2 border-primary">
                                 <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-75" />
                             </div>
                         )}
                     </div>
-
                     <span className={`font-bold tracking-widest text-xs transition-all duration-500 whitespace-nowrap ${isOpen
                         ? 'opacity-100 translate-x-0'
                         : 'opacity-0 -translate-x-4 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0'
                         }`}>
                         SHAREX AI
                     </span>
-
                     {isOpen && (
                         <div className="ml-auto flex items-center shrink-0">
                             <Icon name="XMarkIcon" size={18} className="text-white/40 hover:text-white transition-colors" />
